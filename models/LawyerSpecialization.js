@@ -11,4 +11,4 @@ const lawyerSpecializationSchema = new mongoose.Schema(
 
 lawyerSpecializationSchema.index({ lawyer_id: 1, specialization: 1 }, { unique: true });
 
-module.exports = mongoose.model("LawyerSpecialization", lawyerSpecializationSchema);s
+module.exports = mongoose.model("LawyerSpecialization", lawyerSpecializationSchema);

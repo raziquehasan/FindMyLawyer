@@ -5,6 +5,7 @@ const consultationRequestSchema = new mongoose.Schema(
   {
     client_id: { type: mongoose.Schema.Types.ObjectId, ref: "ClientProfile", required: true },
     case_type: { type: String, enum: ["Property Dispute", "Family & Divorce"], required: true },
+    case_category: { type: String }, // Sub-category if any
     issue_description: { type: String, required: true },
     budget_range: { type: String },
     urgency: { type: String, enum: ["low", "medium", "high"], default: "low" },

@@ -9,6 +9,12 @@ const { errorHandler, notFound } = require("./middleware/errorHandler");
 const requestRoutes = require("./routes/requests");
 const paymentRoutes = require("./routes/payments");
 const lawyerRoutes = require("./routes/lawyer");
+const caseRoutes = require("./routes/cases");
+const demoRoutes = require("./routes/demo");
+const appointmentRoutes = require("./routes/appointments");
+const documentRoutes = require("./routes/documents");
+const reviewRoutes = require("./routes/reviews");
+const settlementRoutes = require("./routes/settlements");
 
 
 const app = express();
@@ -27,6 +33,12 @@ app.use("/onboarding", onboardingRoutes);
 app.use("/requests", requestRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/lawyer", lawyerRoutes);
+app.use("/cases", caseRoutes);
+app.use("/demo", demoRoutes);
+app.use("/appointments", appointmentRoutes);
+app.use("/documents", documentRoutes);
+app.use("/reviews", reviewRoutes);
+app.use("/settlements", settlementRoutes);
 
 
 // 404 + error
