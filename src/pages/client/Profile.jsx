@@ -413,27 +413,17 @@ export default function Profile() {
               </div>
               <Toggle value={notifReminder} onChange={setNotifReminder} />
             </div>
-            <div className="flex items-center justify-between px-5 py-4">
+            {/* <div className="flex items-center justify-between px-5 py-4">
               <div>
                 <p className="text-sm font-semibold text-gray-900">Promotions & Offers</p>
                 <p className="text-xs text-gray-400">Special deals and discounts</p>
               </div>
               <Toggle value={notifPromo} onChange={setNotifPromo} />
-            </div>
+            </div> */}
           </div>
         </section>
 
-        {/* QUICK LINKS */}
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Quick Actions</h2>
-          </div>
-          <div className="divide-y divide-gray-50">
-            <QuickLink icon={<Briefcase size={15} className="text-gray-700" />} bg="bg-gray-100" label="My Cases" sub="View all your consultations" onClick={() => navigate("/my-cases")} />
-            <QuickLink icon={<PlusCircle size={15} className="text-gray-700" />} bg="bg-gray-100" label="New Consultation" sub="Book a lawyer now" onClick={() => navigate("/client-dashboard/request")} />
-            <QuickLink icon={<MessageSquare size={15} className="text-gray-700" />} bg="bg-gray-100" label="Support Chat" sub="Get help from our team" onClick={() => navigate("/support-chat")} />
-          </div>
-        </section>
+      
 
         {/* TERMS & PRIVACY */}
         <section className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden">

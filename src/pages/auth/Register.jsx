@@ -154,7 +154,7 @@ export default function Register() {
     const { password: _pw, ...sessionData } = existingUsers[formData.email.toLowerCase()];
     localStorage.setItem("user", JSON.stringify(sessionData));
 
-    navigate("/user-home");
+    navigate("/client-dashboard");
   };
 
   const inputClass = (field) =>
@@ -309,17 +309,6 @@ export default function Register() {
           >
             "{rightsFacts[factIndex]}"
           </p>
-
-          <div className="flex items-center justify-center gap-1.5 mt-4">
-            {rightsFacts.map((_, i) => (
-              <span
-                key={i}
-                className={`inline-block h-1 rounded-full transition-all duration-500 ${
-                  i === factIndex ? "w-5 bg-white" : "w-1.5 bg-gray-600"
-                }`}
-              />
-            ))}
-          </div>
 
           <div className="w-full border-t border-gray-800 mt-6 pt-4">
             <p className="text-[11px] text-gray-600">

@@ -55,10 +55,20 @@ function CaseProgressBar({ status }) {
   );
 }
 
+
+const rightsFacts = [
+  "You have the right to consult a lawyer before questioning.",
+  "You have the right to remain silent.",
+  "You are entitled to legal aid if you cannot afford a lawyer.",
+  "You must be informed of the charges before arrest.",
+];
+
 export default function MyCases() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [user,     setUser]     = useState({ name: "User", email: "" });
+  const [factIndex, setFactIndex] = useState(0);
+  const [visible,   setVisible]   = useState(true);
 
   useEffect(() => {
     try {
@@ -88,6 +98,18 @@ export default function MyCases() {
       }
     } catch (err) { console.error(err); navigate("/"); }
   }, [navigate]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setFactIndex(prev => (prev + 1) % rightsFacts.length);
+        setVisible(true);
+      }, 500);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   const handleLogout = () => { localStorage.removeItem("user"); navigate("/"); };
 
@@ -127,7 +149,7 @@ export default function MyCases() {
   const inProgress= bookings.filter(b => (b.status || "").toLowerCase() === "inprogress").length;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+    <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
 
       {/* HEADER */}
       <header className="bg-gray-900 text-white sticky top-0 z-20 shadow-xl">
@@ -149,24 +171,15 @@ export default function MyCases() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-3 sm:px-4 pt-6 pb-4">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 pt-6 pb-6">
 
-        {/* ── HERO WELCOME ── */}
-        <div className="bg-gray-900 rounded-2xl sm:rounded-3xl p-5 sm:p-7 mb-5 text-white relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
-          <div className="absolute right-8 bottom-0 w-16 h-16 bg-white/5 rounded-full translate-y-6" />
-          <p className="text-gray-400 text-xs sm:text-sm font-medium mb-1">Good day,</p>
-          <h1 className="text-xl sm:text-2xl font-bold mb-1">{user.name} 👋</h1>
-          <p className="text-gray-400 text-xs sm:text-sm mb-5">
-            {total === 0 ? "You have no consultations yet. Book your first one today!" : `You have ${total} consultation${total > 1 ? "s" : ""} on record.`}
+        {/* ── SIMPLE GREETING ── */}
+        <div className="mb-5 pt-1">
+          <p className="text-sm text-gray-500 font-medium">Welcome back,</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{user.name} 👋</h1>
+          <p className="text-xs sm:text-sm text-gray-400 mt-1">
+            {total === 0 ? "No consultations yet. Book your first one below!" : `You have ${total} consultation${total > 1 ? "s" : ""} on record.`}
           </p>
-          <button
-            onClick={() => navigate("/client-dashboard/request")}
-            className="flex items-center gap-2 bg-white text-gray-900 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-gray-100 transition-all shadow-md hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <PlusCircle size={17} />
-            Book New Consultation
-          </button>
         </div>
 
         {/* ── STATS ── */}
@@ -292,36 +305,63 @@ export default function MyCases() {
           </div>
         )}
 
+        {/* ── BOOK CONSULTATION BUTTON ── */}
+        <div className="mt-8 mb-2">
+          <button
+            onClick={() => navigate("/client-dashboard/request")}
+            className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white font-semibold text-sm py-4 rounded-2xl hover:bg-gray-800 transition-all shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
+          >
+            <PlusCircle size={18} />
+            Book New Consultation
+          </button>
+        </div>
+
       </main>
 
-      {/* BOTTOM NAVIGATION — no center FAB, 4 even items */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-20">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-around px-4 py-2.5">
-            <button onClick={() => navigate("/client-dashboard")}
-              className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-all min-w-[60px]">
-              <Briefcase size={22} />
-              <span className="text-[10px] font-medium">Home</span>
-            </button>
 
-            <button onClick={() => navigate("/client-dashboard/lawyers")}
-              className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-all min-w-[60px]">
-              <Shield size={22} />
-              <span className="text-[10px] font-medium">Lawyers</span>
-            </button>
-
-            <button onClick={() => navigate("/support-chat")}
-              className="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-600 transition-all min-w-[60px]">
-              <MessageSquare size={22} />
-              <span className="text-[10px] font-medium">Support</span>
-            </button>
-
-            <button onClick={() => navigate("/profile")}
-              className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-900 transition-all min-w-[60px]">
-              <User size={22} />
-              <span className="text-[10px] font-medium">Profile</span>
-            </button>
+      {/* ── FOOTER ── */}
+      <footer className="w-full bg-gray-900 text-white py-8 px-4">
+        <div className="max-w-2xl mx-auto flex flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Scale size={13} className="text-gray-500" />
+            <span className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">Know Your Legal Rights</span>
+            <Scale size={13} className="text-gray-500" />
           </div>
+          <p className="text-sm sm:text-base text-white font-medium leading-relaxed transition-opacity duration-500 px-2" style={{ opacity: visible ? 1 : 0 }}>
+            "{rightsFacts[factIndex]}"
+          </p>
+          <div className="flex items-center justify-center gap-1.5 mt-4">
+            {rightsFacts.map((_, i) => (
+              <span key={i} className={`inline-block h-1 rounded-full transition-all duration-500 ${i === factIndex ? "w-5 bg-white" : "w-1.5 bg-gray-600"}`} />
+            ))}
+          </div>
+          <div className="w-full border-t border-gray-800 mt-6 pt-4">
+            <p className="text-[11px] text-gray-600">© {new Date().getFullYear()} FindMyLawyer · All rights reserved</p>
+          </div>
+        </div>
+      </footer>
+
+      {/* BOTTOM NAVIGATION */}
+      <nav style={{height:"56px"}} className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-20">
+        <div style={{height:"56px"}} className="max-w-4xl mx-auto flex items-center justify-around px-2">
+          {[
+            { icon: Briefcase,    label: "Home",    path: "/client-dashboard" },
+            { icon: Shield,       label: "Lawyers", path: "/client-dashboard/lawyers" },
+            { icon: MessageSquare,label: "Support", path: "/support-chat" },
+            { icon: User,         label: "Profile", path: "/profile" },
+          ].map(({ icon: Icon, label, path }) => (
+            <button
+              key={label}
+              onClick={() => navigate(path)}
+              style={{width:"60px", height:"56px", flexShrink:0}}
+              className="flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-gray-900 transition-colors"
+            >
+              <Icon size={22} strokeWidth={1.8} />
+              <span style={{fontSize:"10px", lineHeight:"12px", fontWeight:500, display:"block", whiteSpace:"nowrap"}}>
+                {label}
+              </span>
+            </button>
+          ))}
         </div>
       </nav>
 
