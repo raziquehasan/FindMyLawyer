@@ -1,569 +1,436 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
-  ArrowLeft, Calendar, User, Briefcase, DollarSign, CreditCard,
-  CheckCircle, Clock, AlertCircle, Star, Phone, MessageSquare,
-  Send, Paperclip, FileText, Download, X, Image as ImageIcon,
-  MapPin, Shield
+  ArrowLeft, Send, Paperclip, FileText, Download,
+  Image as ImageIcon, AlertCircle, Phone, Shield,
+  CheckCheck, Upload, FolderOpen, File, Trash2
 } from "lucide-react";
 
-const PROGRESS_STEPS = [
-  { key: "booked",     label: "Booked",      icon: CheckCircle },
-  { key: "confirmed",  label: "Confirmed",   icon: AlertCircle },
-  { key: "inprogress", label: "In Progress", icon: Clock       },
-  { key: "completed",  label: "Completed",   icon: Star        },
-];
-
-const statusToStep = (status) => {
-  switch ((status || "").toLowerCase()) {
-    case "upcoming":   return 1;
-    case "inprogress": return 2;
-    case "completed":  return 3;
-    default:           return 0;
-  }
+const WELCOME_MSG = {
+  id: "welcome",
+  sender: "system",
+  text: "🔒 This is a secure, encrypted conversation. Your lawyer will respond to your messages here. Feel free to introduce yourself or describe your situation.",
+  timestamp: new Date().toISOString(),
 };
 
+const QUICK_PROMPTS = [
+  "What are my legal rights in this case?",
+  "How long will this case take?",
+  "What documents do I need to prepare?",
+  "What are the next steps?",
+];
+
 export default function CaseDetails() {
-  const navigate    = useNavigate();
+  const navigate      = useNavigate();
   const { bookingId } = useParams();
-  const chatEndRef  = useRef(null);
-  const fileInputRef = useRef(null);
+  const location      = useLocation();
+  const chatEndRef    = useRef(null);
+  const fileInputRef  = useRef(null);
+  const inputRef      = useRef(null);
+
+  const tabFromUrl = new URLSearchParams(location.search).get("tab") || "chat";
 
   const [booking,      setBooking]      = useState(null);
   const [loading,      setLoading]      = useState(true);
-  const [activeTab,    setActiveTab]    = useState("details");
   const [messages,     setMessages]     = useState([]);
   const [newMessage,   setNewMessage]   = useState("");
   const [uploadedDocs, setUploadedDocs] = useState([]);
   const [uploading,    setUploading]    = useState(false);
+  const [showPrompts,  setShowPrompts]  = useState(true);
 
   useEffect(() => {
-    // Step 1: get user
     const userData = localStorage.getItem("user");
-    if (!userData) {
-      navigate("/");
-      return;
-    }
-
+    if (!userData) { navigate("/"); return; }
     let user = null;
-    try {
-      user = JSON.parse(userData);
-    } catch {
-      navigate("/");
-      return;
-    }
+    try { user = JSON.parse(userData); } catch { navigate("/"); return; }
+    if (!user?.email) { navigate("/"); return; }
 
-    if (!user || !user.email) {
-      navigate("/");
-      return;
-    }
-
-    // Step 2: get ALL bookings stored under this user
-    const key    = `bookings_${user.email}`;
-    const stored = localStorage.getItem(key);
-
-    if (!stored) {
-      setLoading(false);
-      return;
-    }
-
+    const stored = localStorage.getItem(`bookings_${user.email}`);
+    if (!stored) { setLoading(false); return; }
     let bookings = [];
-    try {
-      bookings = JSON.parse(stored);
-    } catch {
-      setLoading(false);
-      return;
-    }
+    try { bookings = JSON.parse(stored); } catch { setLoading(false); return; }
 
-    // Step 3: find the booking matching the URL param
-    const found = bookings.find(
-      (b) => String(b.bookingId) === String(bookingId)
-    );
-
+    const found = bookings.find(b => String(b.bookingId) === String(bookingId));
     if (found) {
       setBooking(found);
-
-      // Load chat
       try {
-        const chatData = localStorage.getItem(`chat_${bookingId}`);
-        if (chatData) setMessages(JSON.parse(chatData));
-      } catch { /* ignore */ }
-
-      // Load docs
+        const c = localStorage.getItem(`chat_${bookingId}`);
+        const parsed = c ? JSON.parse(c) : [];
+        const hasWelcome = parsed.some(m => m.id === "welcome");
+        setMessages(hasWelcome ? parsed : [WELCOME_MSG, ...parsed]);
+        const hasUserMsg = parsed.some(m => m.sender === "client");
+        if (hasUserMsg) setShowPrompts(false);
+      } catch { setMessages([WELCOME_MSG]); }
       try {
-        const docsData = localStorage.getItem(`docs_${bookingId}`);
-        if (docsData) setUploadedDocs(JSON.parse(docsData));
-      } catch { /* ignore */ }
+        const d = localStorage.getItem(`docs_${bookingId}`);
+        if (d) setUploadedDocs(JSON.parse(d));
+      } catch {}
     }
-
     setLoading(false);
   }, [bookingId, navigate]);
 
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
+  const saveMessages = (msgs) => {
+    localStorage.setItem(`chat_${bookingId}`, JSON.stringify(msgs));
+  };
 
+  const sendMessage = (text) => {
+    const msgText = (text || newMessage).trim();
+    if (!msgText) return;
     const msg = {
-      id:        Date.now(),
-      sender:    "client",
-      text:      newMessage.trim(),
+      id: Date.now(),
+      sender: "client",
+      text: msgText,
       timestamp: new Date().toISOString(),
     };
-
     const updated = [...messages, msg];
     setMessages(updated);
     setNewMessage("");
-    localStorage.setItem(`chat_${bookingId}`, JSON.stringify(updated));
-
-    setTimeout(() => {
-      const autoReply = {
-        id:        Date.now() + 1,
-        sender:    "lawyer",
-        text:      "Thank you for your message. I'll review this and get back to you shortly.",
-        timestamp: new Date().toISOString(),
-      };
-      const withReply = [...updated, autoReply];
-      setMessages(withReply);
-      localStorage.setItem(`chat_${bookingId}`, JSON.stringify(withReply));
-    }, 1500);
+    setShowPrompts(false);
+    saveMessages(updated);
   };
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
+    if (!files.length) return;
     setUploading(true);
-
     setTimeout(() => {
-      const newDocs = files.map((file) => ({
-        id:         Date.now() + Math.random(),
-        name:       file.name,
-        size:       `${(file.size / 1024).toFixed(1)} KB`,
-        type:       file.type,
+      const newDocs = files.map(f => ({
+        id: Date.now() + Math.random(),
+        name: f.name,
+        size: f.size,
+        type: f.type,
         uploadedAt: new Date().toISOString(),
       }));
-
       const updated = [...uploadedDocs, ...newDocs];
       setUploadedDocs(updated);
       localStorage.setItem(`docs_${bookingId}`, JSON.stringify(updated));
       setUploading(false);
-
-      const uploadMsg = {
-        id:          Date.now(),
-        sender:      "client",
-        text:        `Uploaded ${files.length} document${files.length > 1 ? "s" : ""}: ${files.map((f) => f.name).join(", ")}`,
-        timestamp:   new Date().toISOString(),
-        isSystemMsg: true,
-      };
-      const updatedMsgs = [...messages, uploadMsg];
-      setMessages(updatedMsgs);
-      localStorage.setItem(`chat_${bookingId}`, JSON.stringify(updatedMsgs));
-    }, 1000);
+      e.target.value = "";
+    }, 1200);
   };
 
   const removeDocument = (docId) => {
-    const updated = uploadedDocs.filter((d) => d.id !== docId);
+    const updated = uploadedDocs.filter(d => d.id !== docId);
     setUploadedDocs(updated);
     localStorage.setItem(`docs_${bookingId}`, JSON.stringify(updated));
   };
 
-  const getStatusColor = (status) => {
-    switch ((status || "").toLowerCase()) {
-      case "completed":  return "text-emerald-600 bg-emerald-50 border-emerald-200";
-      case "upcoming":   return "text-blue-600 bg-blue-50 border-blue-200";
-      case "inprogress": return "text-amber-600 bg-amber-50 border-amber-200";
-      default:           return "text-gray-600 bg-gray-50 border-gray-200";
-    }
+  const formatTime = (iso) =>
+    new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "—";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1048576).toFixed(1)} MB`;
   };
 
-  const formatTimestamp = (iso) => {
-    const date = new Date(iso);
-    return date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  const getFileIcon = (type) => {
+    if (type?.includes("image")) return { icon: ImageIcon, bg: "bg-purple-100", color: "text-purple-600" };
+    if (type?.includes("pdf"))   return { icon: FileText,  bg: "bg-red-100",    color: "text-red-600"    };
+    if (type?.includes("word") || type?.includes("document"))
+                                 return { icon: File,      bg: "bg-blue-100",   color: "text-blue-600"   };
+    return                              { icon: File,      bg: "bg-gray-100",   color: "text-gray-500"   };
   };
 
-  // ── Loading state ──
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading case details...</p>
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+        <p className="text-gray-500 text-sm">Loading...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  // ── Booking not found — show message instead of redirecting ──
-  if (!booking) {
+  if (!booking) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="text-center">
+        <AlertCircle size={48} className="text-red-400 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Case Not Found</h2>
+        <button onClick={() => navigate("/my-cases")}
+          className="bg-gray-900 text-white px-6 py-2.5 rounded-xl text-sm font-semibold mt-4">
+          ← Back to My Cases
+        </button>
+      </div>
+    </div>
+  );
+
+  const lawyerInitial = (booking.lawyer || "L")[0];
+
+  /* ════════════════════════════════════
+     CHAT PAGE
+  ════════════════════════════════════ */
+  if (tabFromUrl === "chat") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle size={32} className="text-red-500" />
+      <div className="flex flex-col bg-gray-100" style={{ height: "100dvh" }}>
+
+        {/* Header */}
+        <div className="bg-gray-900 text-white px-4 py-3 flex items-center gap-3 shadow-lg flex-shrink-0">
+          <button onClick={() => navigate("/my-cases")}
+            className="p-1.5 hover:bg-white/10 rounded-lg transition">
+            <ArrowLeft size={20} />
+          </button>
+
+          <div className="relative flex-shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-800 border-2 border-white/20 rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">{lawyerInitial}</span>
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-gray-900 rounded-full" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Case Not Found</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            We couldn't find a case with ID: <span className="font-mono font-bold">{bookingId}</span>
-          </p>
-          <button
-            onClick={() => navigate("/my-cases")}
-            className="bg-gray-900 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 transition"
-          >
-            ← Back to My Cases
+
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold leading-tight truncate">{booking.lawyer}</p>
+            <p className="text-[11px] text-green-400 font-medium">Online · {booking.caseType || "Legal Consultant"}</p>
+          </div>
+
+          <button onClick={() => window.location.href = "tel:+919876543210"}
+            className="p-2 hover:bg-white/10 rounded-lg transition">
+            <Phone size={18} className="text-gray-300" />
+          </button>
+          <button className="p-2 hover:bg-white/10 rounded-lg transition">
+            <Shield size={18} className="text-gray-300" />
+          </button>
+        </div>
+
+        {/* Encrypted notice */}
+        <div className="bg-amber-50 border-b border-amber-100 px-4 py-1.5 flex items-center justify-center gap-1.5 flex-shrink-0">
+          <Shield size={11} className="text-amber-500" />
+          <p className="text-[11px] text-amber-700 font-medium">End-to-end encrypted · Confidential</p>
+        </div>
+
+        {/* Messages area */}
+        <div
+          className="flex-1 overflow-y-auto px-3 py-4 space-y-3"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }}
+        >
+          <div className="flex justify-center">
+            <span className="bg-white text-gray-400 text-[10px] font-medium px-3 py-1 rounded-full shadow-sm border border-gray-100">
+              Today
+            </span>
+          </div>
+
+          {messages.map((msg, idx) => {
+            const isClient   = msg.sender === "client";
+            const isSystem   = msg.sender === "system";
+            const showAvatar = msg.sender === "lawyer" &&
+              (idx === 0 || messages[idx - 1]?.sender !== "lawyer");
+
+            if (isSystem) return (
+              <div key={msg.id} className="flex justify-center px-2">
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-2.5 max-w-sm text-center shadow-sm">
+                  <p className="text-xs text-blue-700 leading-relaxed">{msg.text}</p>
+                </div>
+              </div>
+            );
+
+            return (
+              <div key={msg.id}
+                className={`flex items-end gap-2 ${isClient ? "justify-end" : "justify-start"}`}>
+                {!isClient && (
+                  <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mb-1 ${
+                    showAvatar ? "bg-gray-900" : "opacity-0 pointer-events-none"
+                  }`}>
+                    {showAvatar && <span className="text-white text-[10px] font-bold">{lawyerInitial}</span>}
+                  </div>
+                )}
+
+                <div className={`flex flex-col gap-0.5 max-w-[75%] ${isClient ? "items-end" : "items-start"}`}>
+                  <div className={`px-4 py-2.5 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                    isClient
+                      ? "bg-gray-900 text-white rounded-br-md"
+                      : "bg-white text-gray-900 rounded-bl-md"
+                  }`}>
+                    {msg.text}
+                  </div>
+                  <div className="flex items-center gap-1 px-1">
+                    <span className="text-[10px] text-gray-400">{formatTime(msg.timestamp)}</span>
+                    {isClient && <CheckCheck size={12} className="text-blue-400" />}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Quick prompts */}
+        {showPrompts && (
+          <div className="px-3 pb-2 flex gap-2 overflow-x-auto flex-shrink-0">
+            {QUICK_PROMPTS.map((p, i) => (
+              <button key={i} onClick={() => sendMessage(p)}
+                className="flex-shrink-0 bg-white border border-gray-200 text-gray-700 text-xs font-medium px-3 py-2 rounded-full shadow-sm hover:border-gray-900 hover:text-gray-900 transition-all whitespace-nowrap">
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="bg-white border-t border-gray-200 px-3 py-3 flex items-end gap-2 flex-shrink-0">
+          <button onClick={() => fileInputRef.current?.click()}
+            className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition flex-shrink-0">
+            <Paperclip size={20} />
+          </button>
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload}
+            className="hidden" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+
+          <div className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 focus-within:border-gray-900 focus-within:bg-white transition-all">
+            <textarea
+              ref={inputRef}
+              value={newMessage}
+              onChange={e => {
+                setNewMessage(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+              }}
+              onKeyDown={e => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+              }}
+              placeholder="Type a message..."
+              rows={1}
+              className="w-full bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 resize-none leading-relaxed"
+              style={{ maxHeight: "120px" }}
+            />
+          </div>
+
+          <button onClick={() => sendMessage()}
+            disabled={!newMessage.trim()}
+            className={`p-2.5 rounded-xl flex-shrink-0 transition-all ${
+              newMessage.trim()
+                ? "bg-gray-900 text-white hover:bg-gray-700 shadow-md"
+                : "bg-gray-100 text-gray-300 cursor-not-allowed"
+            }`}>
+            <Send size={20} />
           </button>
         </div>
       </div>
     );
   }
 
-  const activeStep    = statusToStep(booking.status);
-  const isChatEnabled = booking.status === "inprogress" || booking.status === "completed";
-
+  /* ════════════════════════════════════
+     DOCUMENTS PAGE
+  ════════════════════════════════════ */
   return (
-    <div className="min-h-screen bg-gray-50 pb-6">
-
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-gray-900 text-white sticky top-0 z-20 shadow-xl">
-        <div className="flex items-center gap-3 px-4 sm:px-6 py-4 max-w-5xl mx-auto">
-          <button
-            onClick={() => navigate("/my-cases")}
-            className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition"
-          >
+        <div className="flex items-center gap-3 px-4 py-4 max-w-3xl mx-auto">
+          <button onClick={() => navigate("/my-cases")}
+            className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition">
             <ArrowLeft size={18} />
           </button>
           <div className="flex-1">
-            <h1 className="text-base sm:text-lg font-bold">Case Details</h1>
-            <p className="text-xs text-gray-400 font-mono">{booking.bookingId}</p>
+            <h1 className="text-sm font-bold">Case Documents</h1>
+            <p className="text-xs text-gray-400">{booking.lawyer} · {booking.caseType || "Legal Consultation"}</p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(booking.status)}`}>
-            {booking.status === "upcoming"   ? "Upcoming"    :
-             booking.status === "inprogress" ? "In Progress" :
-             booking.status === "completed"  ? "Completed"   : "Upcoming"}
-          </span>
+          <button onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-lg hover:bg-gray-100 transition">
+            <Upload size={13} /> Upload
+          </button>
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload}
+            className="hidden" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-3 sm:px-4 pt-6">
+      <div className="flex-1 max-w-3xl mx-auto w-full px-4 py-5">
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-white rounded-2xl p-2 shadow-sm border border-gray-100">
-          <button
-            onClick={() => setActiveTab("details")}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === "details"
-                ? "bg-gray-900 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            Case Info
-          </button>
-          <button
-            onClick={() => setActiveTab("chat")}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
-              activeTab === "chat"
-                ? "bg-gray-900 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <MessageSquare size={16} />
-            Chat
-            {!isChatEnabled && (
-              <span className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded-full">
-                Locked
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("documents")}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === "documents"
-                ? "bg-gray-900 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            Docs ({uploadedDocs.length})
-          </button>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          {[
+            { label: "Total Files", value: uploadedDocs.length,                                         color: "text-gray-900"   },
+            { label: "Images",      value: uploadedDocs.filter(d => d.type?.includes("image")).length,  color: "text-purple-600" },
+            { label: "Documents",   value: uploadedDocs.filter(d => !d.type?.includes("image")).length, color: "text-blue-600"   },
+          ].map(s => (
+            <div key={s.label} className="bg-white rounded-2xl p-3 text-center border border-gray-100 shadow-sm">
+              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-[10px] text-gray-500 font-medium mt-0.5">{s.label}</p>
+            </div>
+          ))}
         </div>
 
-        {/* DETAILS TAB */}
-        {activeTab === "details" && (
-          <div className="space-y-6">
-
-            {/* Lawyer Card */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl font-bold text-white">
-                    {(booking.lawyer || "L")[0]}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-gray-900">{booking.lawyer}</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">Legal Specialist</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <MapPin size={14} className="text-gray-400" />
-                    <span className="text-sm text-gray-600">Delhi High Court</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => (window.location.href = "tel:+919876543210")}
-                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition"
-                >
-                  <Phone size={16} />
-                  Call
-                </button>
-              </div>
+        {uploading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 mb-4 flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-blue-700">Uploading files...</p>
+              <p className="text-xs text-blue-400">Please wait</p>
             </div>
-
-            {/* Progress */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">
-                Case Progress
-              </h3>
-              <div className="relative flex items-center justify-between">
-                <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 z-0" />
-                <div
-                  className="absolute top-4 left-0 h-0.5 bg-gray-900 z-0 transition-all duration-700"
-                  style={{ width: `${(activeStep / (PROGRESS_STEPS.length - 1)) * 100}%` }}
-                />
-                {PROGRESS_STEPS.map((step, i) => {
-                  const done   = i <= activeStep;
-                  const active = i === activeStep;
-                  const Icon   = step.icon;
-                  return (
-                    <div key={step.key} className="relative z-10 flex flex-col items-center gap-2 flex-1">
-                      <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all ${
-                          done
-                            ? "bg-gray-900 border-gray-900 text-white"
-                            : "bg-white border-gray-300 text-gray-400"
-                        } ${active ? "ring-4 ring-gray-900/20 scale-110" : ""}`}
-                      >
-                        <Icon size={16} />
-                      </div>
-                      <span className={`text-xs font-medium text-center ${done ? "text-gray-900" : "text-gray-400"}`}>
-                        {step.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Consultation Details */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">
-                Consultation Details
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                <div className="flex items-start gap-3 bg-gray-50 rounded-xl p-4">
-                  <Briefcase size={18} className="text-gray-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Type</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {booking.type === "call"     ? "Call Consultation" :
-                       booking.type === "inPerson" ? "In-Person Meeting" :
-                       booking.type === "video"    ? "Video Call"        : booking.type || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 bg-gray-50 rounded-xl p-4">
-                  <Calendar size={18} className="text-gray-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Scheduled</p>
-                    <p className="text-sm font-semibold text-gray-900">{booking.slot}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-100 rounded-xl p-4">
-                  <DollarSign size={18} className="text-emerald-600 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-emerald-600 mb-1">Amount Paid</p>
-                    <p className="text-sm font-bold text-emerald-700">{booking.fee}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 bg-gray-50 rounded-xl p-4">
-                  <CreditCard size={18} className="text-gray-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Payment Method</p>
-                    <p className="text-sm font-semibold text-gray-900 capitalize">{booking.paymentMethod}</p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
           </div>
         )}
 
-        {/* CHAT TAB */}
-        {activeTab === "chat" && (
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden h-[600px] flex flex-col">
-            {!isChatEnabled ? (
-              <div className="flex-1 flex items-center justify-center p-10 text-center">
-                <div>
-                  <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertCircle size={32} className="text-amber-600" />
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">Chat Not Available Yet</h3>
-                  <p className="text-sm text-gray-600 max-w-sm mx-auto">
-                    Chat will be enabled once the lawyer confirms your consultation.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {messages.length === 0 && (
-                    <div className="text-center py-10">
-                      <MessageSquare size={40} className="text-gray-300 mx-auto mb-3" />
-                      <p className="text-sm text-gray-500">No messages yet. Start the conversation!</p>
-                    </div>
-                  )}
-                  {messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.sender === "client" ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-xs sm:max-w-md rounded-2xl px-4 py-2.5 ${
-                          msg.isSystemMsg
-                            ? "bg-blue-50 text-blue-700 italic text-xs"
-                            : msg.sender === "client"
-                            ? "bg-gray-900 text-white rounded-br-sm"
-                            : "bg-gray-100 text-gray-900 rounded-bl-sm"
-                        }`}
-                      >
-                        <p className="text-sm leading-relaxed">{msg.text}</p>
-                        <p className={`text-[10px] mt-1 ${msg.sender === "client" ? "text-gray-300" : "text-gray-500"}`}>
-                          {formatTimestamp(msg.timestamp)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
-
-                <div className="border-t border-gray-100 p-4 bg-gray-50">
-                  <div className="flex items-end gap-2">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      multiple
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition text-gray-600"
-                    >
-                      <Paperclip size={18} />
-                    </button>
-                    <input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                      placeholder="Type your message..."
-                      className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-                    />
-                    <button
-                      onClick={sendMessage}
-                      disabled={!newMessage.trim()}
-                      className={`p-2.5 rounded-xl transition ${
-                        newMessage.trim()
-                          ? "bg-gray-900 text-white hover:bg-gray-800"
-                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      }`}
-                    >
-                      <Send size={18} />
-                    </button>
-                  </div>
-                  {uploading && <p className="text-xs text-blue-600 mt-2">Uploading documents...</p>}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* DOCUMENTS TAB */}
-        {activeTab === "documents" && (
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Uploaded Documents</h3>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-800 transition"
-              >
-                <Paperclip size={16} />
-                Upload
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                multiple
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              />
+        {uploadedDocs.length === 0 ? (
+          <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center">
+            <div className="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <FolderOpen size={36} className="text-gray-400" />
             </div>
-
-            {uploadedDocs.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText size={48} className="text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 mb-4">No documents uploaded yet</p>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-sm text-blue-600 font-semibold hover:text-blue-700"
-                >
-                  Upload your first document
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {uploadedDocs.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="bg-blue-100 p-2.5 rounded-lg flex-shrink-0">
-                        {doc.type?.includes("image") ? (
-                          <ImageIcon size={20} className="text-blue-600" />
-                        ) : (
-                          <FileText size={20} className="text-blue-600" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{doc.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {doc.size} · {new Date(doc.uploadedAt).toLocaleDateString()}
-                        </p>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">No Documents Yet</h3>
+            <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
+              Upload FIRs, affidavits, contracts, court orders, or any case evidence.
+            </p>
+            <button onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-gray-800 transition shadow-md">
+              <Upload size={16} /> Upload First Document
+            </button>
+            <div className="flex items-center justify-center gap-3 mt-5">
+              {["PDF", "DOC", "JPG", "PNG"].map(ext => (
+                <span key={ext} className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg font-mono">.{ext}</span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {uploadedDocs.map(doc => {
+              const { icon: Icon, bg, color } = getFileIcon(doc.type);
+              return (
+                <div key={doc.id}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
+                  <div className="flex items-center gap-3 p-4">
+                    <div className={`w-12 h-12 ${bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                      <Icon size={22} className={color} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{doc.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-xs text-gray-400">{formatFileSize(doc.size)}</span>
+                        <span className="text-gray-200">·</span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(doc.uploadedAt).toLocaleDateString("en-IN", {
+                            day: "numeric", month: "short", year: "numeric"
+                          })}
+                        </span>
+                        <span className="inline-flex items-center gap-0.5 bg-green-50 text-green-600 text-[9px] font-semibold px-1.5 py-0.5 rounded-full">
+                          <CheckCheck size={9} /> Saved
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button className="p-2 text-gray-600 hover:text-blue-600 transition">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
                         <Download size={16} />
                       </button>
-                      <button
-                        onClick={() => removeDocument(doc.id)}
-                        className="p-2 text-gray-600 hover:text-red-600 transition"
-                      >
-                        <X size={16} />
+                      <button onClick={() => removeDocument(doc.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              );
+            })}
+
+            <button onClick={() => fileInputRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 text-gray-500 hover:border-gray-900 hover:text-gray-900 py-4 rounded-2xl text-sm font-medium transition-all">
+              <Upload size={16} /> Add More Documents
+            </button>
           </div>
         )}
-
-      </main>
+      </div>
     </div>
   );
 }

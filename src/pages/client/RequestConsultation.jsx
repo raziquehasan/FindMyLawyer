@@ -17,6 +17,12 @@ const rightsFacts = [
   "You have the right to remain silent.",
   "You are entitled to legal aid if you cannot afford a lawyer.",
   "You must be informed of the charges before arrest.",
+  "You have the right to confront and cross-examine witnesses testifying against you.",
+  "You are presumed innocent until proven guilty beyond a reasonable doubt.",
+  "You have the right to an impartial jury of your peers.",
+  "No person can be tried twice for the same crime — this is the right against double jeopardy.",
+  "You have the right to be free from unreasonable searches and seizures.",
+  "You have the right to know the reason for your arrest.",
 ];
 
 export default function RequestConsultation() {
@@ -147,7 +153,7 @@ export default function RequestConsultation() {
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    navigate("/client-dashboard/lawyers");
+    navigate("/client-dashboard/lawyers", { state: { caseType, urgency, preferredLanguage } });
   };
 
   // ── Style helper ──────────────────────────────────────────────
@@ -395,17 +401,6 @@ export default function RequestConsultation() {
           >
             "{rightsFacts[factIndex]}"
           </p>
-
-          <div className="flex items-center justify-center gap-1.5 mt-4">
-            {rightsFacts.map((_, i) => (
-              <span
-                key={i}
-                className={`inline-block h-1 rounded-full transition-all duration-500 ${
-                  i === factIndex ? "w-5 bg-white" : "w-1.5 bg-gray-600"
-                }`}
-              />
-            ))}
-          </div>
 
           <div className="border-t border-gray-800 mt-6 pt-4">
             <p className="text-[11px] text-gray-600">

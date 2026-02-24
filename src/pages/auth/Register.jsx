@@ -46,6 +46,12 @@ const rightsFacts = [
   "You have the right to remain silent.",
   "You are entitled to legal aid if you cannot afford a lawyer.",
   "You must be informed of the charges before arrest.",
+  "You have the right to confront and cross-examine witnesses testifying against you.",
+  "You are presumed innocent until proven guilty beyond a reasonable doubt.",
+  "You have the right to an impartial jury of your peers.",
+  "No person can be tried twice for the same crime — this is the right against double jeopardy.",
+  "You have the right to be free from unreasonable searches and seizures.",
+  "You have the right to know the reason for your arrest.",
 ];
 
 export default function Register() {
@@ -402,7 +408,7 @@ export default function Register() {
 
           <p className="text-center text-sm text-gray-500 mt-5">
             Already have an account?{" "}
-            <span onClick={() => navigate("/")} className="text-gray-900 font-semibold cursor-pointer hover:underline">Login</span>
+            <span onClick={() => navigate("/login")} className="text-gray-900 font-semibold cursor-pointer hover:underline">Login</span>
           </p>
 
         </div>

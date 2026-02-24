@@ -13,6 +13,12 @@ const rightsFacts = [
   "You have the right to remain silent.",
   "You are entitled to legal aid if you cannot afford a lawyer.",
   "You must be informed of the charges before arrest.",
+  "You have the right to confront and cross-examine witnesses testifying against you.",
+  "You are presumed innocent until proven guilty beyond a reasonable doubt.",
+  "You have the right to an impartial jury of your peers.",
+  "No person can be tried twice for the same crime — this is the right against double jeopardy.",
+  "You have the right to be free from unreasonable searches and seizures.",
+  "You have the right to know the reason for your arrest.",
 ];
 
 const EMPTY_PROFILE = {
@@ -202,18 +208,21 @@ export default function Profile() {
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
 
       {/* HEADER */}
-      <header className="bg-black text-white sticky top-0 z-20 shadow-md">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 max-w-3xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="hover:opacity-70 transition mr-1">
-              <ArrowLeft size={18} />
-            </button>
-            <Scale size={16} />
-            <span className="text-sm font-bold tracking-tight">FindMyLawyer</span>
-          </div>
-          <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs border border-white/30 hover:border-white px-3 py-1.5 rounded-lg transition font-medium">
-            <LogOut size={13} /><span>Logout</span>
+      <header className="bg-gray-900 text-white px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-xl">
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate(-1)} className="bg-white/10 hover:bg-white/20 p-1.5 rounded-lg transition mr-1">
+            <ArrowLeft size={16} />
           </button>
+          <div className="bg-white/10 p-1.5 rounded-lg">
+            <Scale size={18} className="text-white" />
+          </div>
+          <div className="leading-none ml-0.5">
+            <span className="text-sm sm:text-base font-bold tracking-tight">FindMyLawyer</span>
+            <p className="text-[10px] text-gray-400 mt-0.5">My Profile</p>
+          </div>
+        </div>
+        <div className="w-8 h-8 bg-white/10 border border-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+          <span className="text-xs font-bold">{initials[0] || "U"}</span>
         </div>
       </header>
 
@@ -413,17 +422,27 @@ export default function Profile() {
               </div>
               <Toggle value={notifReminder} onChange={setNotifReminder} />
             </div>
-            {/* <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center justify-between px-5 py-4">
               <div>
                 <p className="text-sm font-semibold text-gray-900">Promotions & Offers</p>
                 <p className="text-xs text-gray-400">Special deals and discounts</p>
               </div>
               <Toggle value={notifPromo} onChange={setNotifPromo} />
-            </div> */}
+            </div>
           </div>
         </section>
 
-      
+        {/* QUICK LINKS */}
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Quick Actions</h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            <QuickLink icon={<Briefcase size={15} className="text-gray-700" />} bg="bg-gray-100" label="My Cases" sub="View all your consultations" onClick={() => navigate("/my-cases")} />
+            <QuickLink icon={<PlusCircle size={15} className="text-gray-700" />} bg="bg-gray-100" label="New Consultation" sub="Book a lawyer now" onClick={() => navigate("/client-dashboard/request")} />
+            <QuickLink icon={<MessageSquare size={15} className="text-gray-700" />} bg="bg-gray-100" label="Support Chat" sub="Get help from our team" onClick={() => navigate("/support-chat")} />
+          </div>
+        </section>
 
         {/* TERMS & PRIVACY */}
         <section className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
@@ -474,11 +493,6 @@ export default function Profile() {
           <p className="text-sm sm:text-base text-white font-medium leading-relaxed transition-opacity duration-500" style={{ opacity: visible ? 1 : 0 }}>
             "{rightsFacts[factIndex]}"
           </p>
-          <div className="flex items-center justify-center gap-1.5 mt-4">
-            {rightsFacts.map((_, i) => (
-              <span key={i} className={`inline-block h-px rounded-full transition-all duration-500 ${i === factIndex ? "w-6 bg-white" : "w-2 bg-gray-700"}`} />
-            ))}
-          </div>
           <div className="border-t border-white/10 mt-6 pt-4">
             <p className="text-[11px] text-gray-600">© {new Date().getFullYear()} FindMyLawyer · All rights reserved</p>
           </div>

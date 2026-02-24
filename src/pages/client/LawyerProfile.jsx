@@ -1,9 +1,11 @@
 import { ArrowLeft, Star, Briefcase, Clock, Phone, MessageSquare, MapPin, Award, CheckCircle, Calendar } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useState } from "react";
 
 export default function LawyerProfile() {
   const navigate = useNavigate();
+  const location  = useLocation();
+  const caseType  = location.state?.caseType || "";
   const { id } = useParams();
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
 
@@ -51,7 +53,7 @@ export default function LawyerProfile() {
   const handleProceedToPayment = () => {
     if (!selectedTimeSlot) { alert("Please select a time slot"); return; }
     navigate('/payment', {
-      state: { lawyer: lawyer.name, type: "call", fee: lawyer.fees.call, slot: selectedTimeSlot }
+      state: { lawyerId: lawyer.id, lawyer: lawyer.name, lawyerPhone: lawyer.phone, lawyerRating: lawyer.rating, lawyerReviews: lawyer.reviews, lawyerSpecialization: lawyer.specialization, type: "call", fee: lawyer.fees.call, slot: selectedTimeSlot, caseType, lawyerExp: lawyer.experience, lawyerForum: "High Court" }
     });
   };
 
