@@ -184,7 +184,7 @@ export default function LandingPage() {
           {/* RIGHT — Single CTA */}
           <button
             onClick={() => navigate("/login")}
-            className="hidden md:flex items-center gap-2 bg-gradient-to-r from-gray-900 to-blue-600 hover:from-gray-800 hover:to-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md flex-shrink-0"
+            className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md flex-shrink-0"
           >
             Get Legal Advice
             <ArrowRight size={14} />
@@ -208,7 +208,7 @@ export default function LandingPage() {
             <div className="pt-3">
               <button
                 onClick={() => { setMenuOpen(false); navigate("/login"); }}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-gray-900 to-blue-600 text-white text-sm font-bold py-3 rounded-xl"
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-bold py-3 rounded-xl"
               >
                 Get Legal Advice <ArrowRight size={14} />
               </button>
@@ -254,12 +254,12 @@ export default function LandingPage() {
           {/* 4. Space after description */}
           <div className="h-12"></div>
 
-          {/* 5. Dark themed search bar */}
+          {/* 5. Search bar - normal white background with always black button */}
           <div className="relative max-w-2xl mx-auto">
-            <div className="relative bg-gradient-to-r from-gray-900 to-blue-700 rounded-2xl shadow-2xl p-1">
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl p-1">
+            <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+              <div className="flex items-center gap-2 p-1">
                 <div className="flex-1 flex items-center gap-2 px-4 py-3">
-                  <Search size={20} className="text-blue-300" />
+                  <Search size={20} className="text-gray-400" />
                   <input
                     ref={searchRef}
                     type="text"
@@ -267,20 +267,20 @@ export default function LandingPage() {
                     onChange={e => setQuery(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
                     placeholder="Describe your legal issue..."
-                    className="w-full bg-transparent outline-none text-sm text-white placeholder-blue-200 py-2"
+                    className="w-full bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 py-2"
                   />
                 </div>
                 <button
                   onClick={() => handleSearch()}
                   disabled={!query.trim() || aiLoading}
-                  className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+                  className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 mr-1 ${
                     query.trim() && !aiLoading
-                      ? "bg-white text-gray-900 hover:bg-gray-100 shadow-lg"
-                      : "bg-white/20 text-white/50 cursor-not-allowed"
+                      ? "bg-gray-900 text-white hover:bg-gray-800 shadow-md"
+                      : "bg-gray-900 text-white/70 cursor-not-allowed opacity-70"
                   }`}
                 >
                   {aiLoading ? (
-                    <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
                       <Search size={16} />
@@ -349,7 +349,7 @@ export default function LandingPage() {
             <div className="flex flex-wrap justify-center gap-3">
               {QUICK_QUESTIONS.map((q, i) => (
                 <button key={i} onClick={() => { setQuery(q); handleSearch(q); }}
-                  className="text-sm text-gray-600 bg-white border border-gray-200 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-all shadow-sm">
+                  className="text-sm text-gray-600 bg-white border border-gray-200 hover:border-gray-900 hover:text-gray-900 hover:bg-gray-50 px-4 py-2 rounded-full transition-all shadow-sm">
                   {q}
                 </button>
               ))}
@@ -391,7 +391,7 @@ export default function LandingPage() {
               {HOW_IT_WORKS.map(({ step, title, desc, icon: Icon }, i) => (
                 <div key={step} className="relative bg-gray-50 border border-gray-100 rounded-3xl p-7 text-center hover:shadow-lg hover:border-gray-200 transition-all duration-300">
                   <div className="relative w-14 h-14 mx-auto mb-5">
-                    <div className="w-14 h-14 bg-gradient-to-br from-gray-900 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
+                    <div className="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center shadow-lg">
                       <Icon size={22} className="text-white" />
                     </div>
                     <span className="absolute -top-2 -right-2 w-6 h-6 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center text-[10px] font-black text-gray-500">{i + 1}</span>
