@@ -162,8 +162,8 @@ export default function LandingPage() {
       <nav className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b transition-all duration-300 ${scrolled ? "shadow-lg border-gray-200" : "shadow-none border-transparent"}`}>
         <div className="flex items-center justify-between px-5 sm:px-8 py-3.5">
 
-          {/* LEFT — Logo */}
-          <button onClick={handleBackToHome} className="flex items-center gap-2.5 flex-shrink-0 hover:opacity-80 transition">
+          {/* LEFT — Logo - Click to go to login */}
+          <button onClick={() => navigate("/login")} className="flex items-center gap-2.5 flex-shrink-0 hover:opacity-80 transition">
             <div className="bg-gray-900 p-1.5 rounded-xl">
               <Scale size={18} className="text-white" />
             </div>
@@ -184,7 +184,7 @@ export default function LandingPage() {
           {/* RIGHT — Single CTA */}
           <button
             onClick={() => navigate("/login")}
-            className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md flex-shrink-0"
+            className="hidden md:flex items-center gap-2 bg-gradient-to-r from-gray-900 to-blue-600 hover:from-gray-800 hover:to-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md flex-shrink-0"
           >
             Get Legal Advice
             <ArrowRight size={14} />
@@ -208,7 +208,7 @@ export default function LandingPage() {
             <div className="pt-3">
               <button
                 onClick={() => { setMenuOpen(false); navigate("/login"); }}
-                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-bold py-3 rounded-xl"
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-gray-900 to-blue-600 text-white text-sm font-bold py-3 rounded-xl"
               >
                 Get Legal Advice <ArrowRight size={14} />
               </button>
@@ -217,8 +217,8 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* HERO SECTION - Full viewport height */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
+      {/* HERO SECTION - Content with exact spacing as requested */}
+      <section className="relative min-h-screen flex flex-col items-center justify-start pt-32 px-4 overflow-hidden">
         <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 40%, #f0f4ff 100%)" }} />
         <div className="absolute inset-0 opacity-[0.035]" style={{
           backgroundImage: "linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)",
@@ -229,9 +229,10 @@ export default function LandingPage() {
         <div className="absolute bottom-16 right-[6%] w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
           style={{ background: "radial-gradient(circle, #38bdf8, transparent 70%)" }} />
 
-        <div className="relative z-10 w-full max-w-3xl mx-auto text-center">
+        <div className="relative z-10 w-full max-w-4xl mx-auto text-center">
 
-          <h1 className="text-4xl sm:text-5xl md:text-[62px] font-black text-gray-900 leading-[1.1] tracking-tight mb-3">
+          {/* 1. Title at the top */}
+          <h1 className="text-4xl sm:text-5xl md:text-[62px] font-black text-gray-900 leading-[1.1] tracking-tight">
             Get Legal Help for
             <br />
             <span className="relative inline-block min-w-[4px]">
@@ -242,16 +243,23 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg text-gray-500 max-w-xl mx-auto mb-5 leading-relaxed">
+          {/* 2. Space after title */}
+          <div className="h-12"></div>
+
+          {/* 3. Description */}
+          <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
             Describe your issue — our AI instantly explains your rights and connects you with a verified Indian lawyer.
           </p>
 
-          {/* AI SEARCH BOX */}
-          <div className="relative max-w-2xl mx-auto mb-3">
-            <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-              <div className="flex items-center gap-2 p-2">
-                <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-1">
-                  <Search size={16} className="text-gray-400" />
+          {/* 4. Space after description */}
+          <div className="h-12"></div>
+
+          {/* 5. Dark themed search bar */}
+          <div className="relative max-w-2xl mx-auto">
+            <div className="relative bg-gradient-to-r from-gray-900 to-blue-700 rounded-2xl shadow-2xl p-1">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl p-1">
+                <div className="flex-1 flex items-center gap-2 px-4 py-3">
+                  <Search size={20} className="text-blue-300" />
                   <input
                     ref={searchRef}
                     type="text"
@@ -259,83 +267,89 @@ export default function LandingPage() {
                     onChange={e => setQuery(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
                     placeholder="Describe your legal issue..."
-                    className="w-full bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 py-2"
+                    className="w-full bg-transparent outline-none text-sm text-white placeholder-blue-200 py-2"
                   />
                 </div>
                 <button
                   onClick={() => handleSearch()}
                   disabled={!query.trim() || aiLoading}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1 ${
+                  className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
                     query.trim() && !aiLoading
-                      ? "bg-gray-900 text-white hover:bg-gray-800"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      ? "bg-white text-gray-900 hover:bg-gray-100 shadow-lg"
+                      : "bg-white/20 text-white/50 cursor-not-allowed"
                   }`}
                 >
                   {aiLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    "Search"
+                    <>
+                      <Search size={16} />
+                      <span>Search</span>
+                    </>
                   )}
                 </button>
               </div>
+            </div>
 
-              {(aiLoading || aiError || aiResponse) && (
-                <div ref={responseRef} className="border-t border-gray-100">
-                  {aiLoading && (
-                    <div className="px-6 py-6 bg-gradient-to-b from-gray-50 to-white">
-                      <div className="flex items-center gap-3 text-gray-500">
-                        <div className="flex gap-1.5">
-                          {[0, 150, 300].map(d => (
-                            <span key={d} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                          ))}
-                        </div>
-                        <span className="text-sm font-medium">Analyzing your legal situation...</span>
-                      </div>
-                    </div>
-                  )}
-                  {aiError && (
-                    <div className="px-6 py-5 bg-red-50 border-t border-red-100">
-                      <div className="flex items-center gap-2 text-red-600">
-                        <AlertCircle size={18} />
-                        <span className="text-sm font-medium">{aiError}</span>
-                      </div>
-                    </div>
-                  )}
-                  {aiResponse && (
-                    <div className="px-6 py-6 bg-gradient-to-b from-gray-50 to-white">
-                      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                          <Scale size={16} className="text-white" />
-                        </div>
-                        <div>
-                          <span className="text-sm font-bold text-gray-900">AI Legal Assistant</span>
-                          <p className="text-[10px] text-gray-500">Instant legal guidance</p>
-                        </div>
-                      </div>
-                      <div className="text-gray-700 text-sm leading-relaxed space-y-4">
-                        {aiResponse.split("\n\n").filter(Boolean).map((p, i) => (
-                          <p key={i} className="text-gray-700">{p}</p>
+            {(aiLoading || aiError || aiResponse) && (
+              <div ref={responseRef} className="mt-4 border-t border-gray-100">
+                {aiLoading && (
+                  <div className="px-6 py-6 bg-gradient-to-b from-gray-50 to-white">
+                    <div className="flex items-center gap-3 text-gray-500">
+                      <div className="flex gap-1.5">
+                        {[0, 150, 300].map(d => (
+                          <span key={d} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
                         ))}
                       </div>
-                      <div className="mt-4 pt-3 border-t border-gray-200">
-                        <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                          <AlertCircle size={10} />
-                          This is general legal information only. Consult a qualified lawyer for advice on your specific situation.
-                        </p>
+                      <span className="text-sm font-medium">Analyzing your legal situation...</span>
+                    </div>
+                  </div>
+                )}
+                {aiError && (
+                  <div className="px-6 py-5 bg-red-50 border-t border-red-100">
+                    <div className="flex items-center gap-2 text-red-600">
+                      <AlertCircle size={18} />
+                      <span className="text-sm font-medium">{aiError}</span>
+                    </div>
+                  </div>
+                )}
+                {aiResponse && (
+                  <div className="px-6 py-6 bg-gradient-to-b from-gray-50 to-white">
+                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                      <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                        <Scale size={16} className="text-white" />
+                      </div>
+                      <div>
+                        <span className="text-sm font-bold text-gray-900">AI Legal Assistant</span>
+                        <p className="text-[10px] text-gray-500">Instant legal guidance</p>
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
+                    <div className="text-gray-700 text-sm leading-relaxed space-y-4">
+                      {aiResponse.split("\n\n").filter(Boolean).map((p, i) => (
+                        <p key={i} className="text-gray-700">{p}</p>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                      <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                        <AlertCircle size={10} />
+                        This is general legal information only. Consult a qualified lawyer for advice on your specific situation.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Quick questions - only show when no results */}
+          {/* 6. Space after search bar */}
+          <div className="h-12"></div>
+
+          {/* 7. Quick questions */}
           {!showResults && (
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-3">
               {QUICK_QUESTIONS.map((q, i) => (
                 <button key={i} onClick={() => { setQuery(q); handleSearch(q); }}
-                  className="text-xs text-gray-600 bg-white border border-gray-200 hover:border-gray-900 hover:text-gray-900 px-3 py-1.5 rounded-full transition-all shadow-sm">
+                  className="text-sm text-gray-600 bg-white border border-gray-200 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-full transition-all shadow-sm">
                   {q}
                 </button>
               ))}
@@ -344,14 +358,14 @@ export default function LandingPage() {
 
           {/* Back/New buttons - only show when results are visible */}
           {showResults && (
-            <div className="mt-4 flex items-center justify-center gap-4">
+            <div className="mt-6 flex items-center justify-center gap-4">
               <button onClick={handleNewQuestion}
-                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm hover:shadow transition-all">
+                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-5 py-2.5 rounded-full shadow-sm hover:shadow transition-all">
                 <Search size={14} />New Question
               </button>
-              <button onClick={handleBackToHome}
-                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm hover:shadow transition-all">
-                <Scale size={14} />Back to Home
+              <button onClick={() => navigate("/login")}
+                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-5 py-2.5 rounded-full shadow-sm hover:shadow transition-all">
+                <Scale size={14} />FindMyLawyer
               </button>
             </div>
           )}
@@ -377,7 +391,7 @@ export default function LandingPage() {
               {HOW_IT_WORKS.map(({ step, title, desc, icon: Icon }, i) => (
                 <div key={step} className="relative bg-gray-50 border border-gray-100 rounded-3xl p-7 text-center hover:shadow-lg hover:border-gray-200 transition-all duration-300">
                   <div className="relative w-14 h-14 mx-auto mb-5">
-                    <div className="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center shadow-lg">
+                    <div className="w-14 h-14 bg-gradient-to-br from-gray-900 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
                       <Icon size={22} className="text-white" />
                     </div>
                     <span className="absolute -top-2 -right-2 w-6 h-6 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center text-[10px] font-black text-gray-500">{i + 1}</span>
