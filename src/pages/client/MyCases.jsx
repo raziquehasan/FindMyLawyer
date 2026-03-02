@@ -228,26 +228,20 @@ export default function MyCases() {
           <div className="bg-white/10 p-1.5 rounded-lg">
             <Scale size={18} className="text-white" />
           </div>
-          <div className="leading-none">
-            <span className="text-sm sm:text-base font-bold tracking-tight">FindMyLawyer</span>
-            <p className="text-[10px] text-gray-400 mt-0.5">Welcome back, {user.name}</p>
-          </div>
+          <span className="text-sm sm:text-base font-bold tracking-tight">FindMyLawyer</span>
         </div>
-        <div className="w-8 h-8 bg-white/10 border border-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-xs font-bold">{(user.name || "U")[0].toUpperCase()}</span>
-        </div>
+
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-3 sm:px-4 pt-5 pb-28">
 
         {/* Greeting */}
         <div className="mb-5">
-          <p className="text-xs text-gray-500">Welcome back</p>
-          <h1 className="text-xl font-bold text-gray-900 mt-0.5">{user.name} 👋</h1>
+          <h1 className="text-xl font-bold text-gray-900">Hello, {user.name} 👋</h1>
           <p className="text-xs text-gray-400 mt-1">
             {total === 0
               ? "No consultations yet — book your first one below."
-              : `${total} consultation${total > 1 ? "s" : ""} on record`}
+              : `You have ${total} consultation${total > 1 ? "s" : ""} on record.`}
           </p>
         </div>
 
@@ -321,15 +315,12 @@ export default function MyCases() {
                         {/* Row: name + PAID badge */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1.5">
                               <h3 className="text-sm font-bold text-gray-900 leading-snug">{lawyer.name}</h3>
                               {lawyer.verified && (
-                                <span className="inline-flex items-center gap-0.5 bg-blue-50 border border-blue-100 text-blue-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                                  <CheckCircle size={8} /> Verified
-                                </span>
+                                <CheckCircle size={13} className="text-blue-500 flex-shrink-0" strokeWidth={2.5} />
                               )}
                             </div>
-                            <p className="text-[11px] text-gray-500 font-medium mt-0.5">{lawyer.specialization}</p>
                           </div>
 
                           {/* Tiny PAID receipt button */}
@@ -343,23 +334,20 @@ export default function MyCases() {
                           </button>
                         </div>
 
-                        {/* Meta pills: rating · exp · forum · status */}
+                        {/* Meta pills: forum → exp → rating (no status pill) */}
                         <div className="flex flex-wrap gap-1.5 mt-2">
+                          <span className="inline-flex items-center gap-1 bg-violet-50 border border-violet-100 text-violet-600 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                            <MapPin size={8} />{lawyer.forum}
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                            <Clock size={8} />{lawyer.experience}
+                          </span>
                           {lawyer.rating !== null && (
                             <span className="inline-flex items-center gap-0.5 bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
                               <Star size={8} fill="currentColor" strokeWidth={0} />
                               {lawyer.rating}{lawyer.reviews ? ` (${lawyer.reviews})` : ""}
                             </span>
                           )}
-                          <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-[10px] font-medium px-2 py-0.5 rounded-full">
-                            <Clock size={8} />{lawyer.experience}
-                          </span>
-                          <span className="inline-flex items-center gap-1 bg-violet-50 border border-violet-100 text-violet-600 text-[10px] font-medium px-2 py-0.5 rounded-full">
-                            <MapPin size={8} />{lawyer.forum}
-                          </span>
-                          <span className={`inline-flex items-center border text-[10px] font-semibold px-2 py-0.5 rounded-full ${st.pill}`}>
-                            {st.label}
-                          </span>
                         </div>
 
                         {/* Expertise chips */}

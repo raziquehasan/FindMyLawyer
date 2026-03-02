@@ -4,7 +4,7 @@ import {
   Scale, Search, ArrowRight, Star, ChevronDown, Sparkles,
   Lock, CheckCircle, Menu, X, AlertCircle, Home,
   Building2, Heart, BookOpen, Gavel, Shield,
-  Landmark, Phone
+  Landmark, Phone, User
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────
@@ -13,7 +13,7 @@ import {
 async function askLegalAI(question) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { 
+    headers: {
       "Content-Type": "application/json",
       "x-api-key": "YOUR_ANTHROPIC_API_KEY_HERE",
       "anthropic-version": "2023-06-01"
@@ -90,7 +90,6 @@ export default function LandingPage() {
 
   const phrases = ["Criminal Cases", "Family Disputes", "Property Issues", "Corporate Matters", "Consumer Rights"];
 
-  /* Typing animation */
   useEffect(() => {
     let i = 0;
     const phrase = phrases[phraseIdx];
@@ -106,39 +105,25 @@ export default function LandingPage() {
     return () => clearInterval(iv);
   }, [phraseIdx]);
 
-  /* Navbar shadow on scroll */
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  /* Handle navigation clicks */
   const handleNavClick = (sectionId) => {
     setMenuOpen(false);
     setActiveSection(sectionId);
-    
-    // If we're in chat mode, clear it when navigating
     if (aiResponse || aiLoading || aiError) {
-      setAiResponse("");
-      setAiLoading(false);
-      setAiError("");
-      setShowSignup(false);
+      setAiResponse(""); setAiLoading(false); setAiError(""); setShowSignup(false);
     }
-    
-    // Smooth scroll to section
     const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+    if (element) element.scrollIntoView({ behavior: "smooth" });
   };
 
-  /* Smooth scroll to response */
   useEffect(() => {
     if ((aiResponse || aiError) && responseRef.current) {
-      setTimeout(() => {
-        responseRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
+      setTimeout(() => responseRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
     }
   }, [aiResponse, aiError]);
 
@@ -151,7 +136,6 @@ export default function LandingPage() {
     setAiResponse("");
     setShowSignup(false);
     setActiveSection("chat");
-    
     try {
       const answer = await askLegalAI(question);
       setAiResponse(answer);
@@ -164,20 +148,14 @@ export default function LandingPage() {
   };
 
   const handleNewQuestion = () => {
-    setQuery("");
-    setAiResponse("");
-    setAiError("");
-    setShowSignup(false);
+    setQuery(""); setAiResponse(""); setAiError(""); setShowSignup(false);
     setActiveSection("hero");
     window.scrollTo({ top: 0, behavior: "smooth" });
     setTimeout(() => searchRef.current?.focus(), 500);
   };
 
   const handleBackToHome = () => {
-    setQuery("");
-    setAiResponse("");
-    setAiError("");
-    setShowSignup(false);
+    setQuery(""); setAiResponse(""); setAiError(""); setShowSignup(false);
     setActiveSection("hero");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -185,15 +163,12 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
 
-      {/* NAVBAR */}
+      {/* ══ NAVBAR ══ */}
       <nav className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b transition-all duration-300 ${scrolled ? "shadow-lg border-gray-200" : "shadow-none border-transparent"}`}>
         <div className="flex items-center justify-between px-5 sm:px-8 py-3.5">
 
-          {/* LEFT — Logo (clickable) */}
-          <button 
-            onClick={handleBackToHome}
-            className="flex items-center gap-2.5 flex-shrink-0 hover:opacity-80 transition"
-          >
+          {/* LEFT — Logo */}
+          <button onClick={handleBackToHome} className="flex items-center gap-2.5 flex-shrink-0 hover:opacity-80 transition">
             <div className="bg-gray-900 p-1.5 rounded-xl">
               <Scale size={18} className="text-white" />
             </div>
@@ -203,37 +178,24 @@ export default function LandingPage() {
             </div>
           </button>
 
-          {/* CENTRE — Nav links with click handlers */}
+          {/* CENTRE — Nav links */}
           <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-            <button 
-              onClick={() => handleNavClick("how-it-works")}
-              className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors"
-            >
+            <button onClick={() => handleNavClick("how-it-works")} className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors">
               How It Works
             </button>
-            <button 
-              onClick={() => handleNavClick("rights")}
-              className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors"
-            >
+            <button onClick={() => handleNavClick("rights")} className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors">
               Know Your Rights
             </button>
           </div>
 
-          {/* RIGHT — Auth buttons */}
-          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={() => navigate("/login")}
-              className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => navigate("/register")}
-              className="flex items-center gap-1.5 text-sm font-bold bg-gray-900 text-white px-5 py-2.5 rounded-xl hover:bg-gray-800 transition-colors shadow-sm"
-            >
-              Get Started Free <ArrowRight size={13} />
-            </button>
-          </div>
+          {/* RIGHT — Single CTA */}
+          <button
+            onClick={() => navigate("/login")}
+            className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md flex-shrink-0"
+          >
+            Get Legal Advice
+            <ArrowRight size={14} />
+          </button>
 
           {/* Mobile hamburger */}
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-gray-700 flex-shrink-0">
@@ -244,48 +206,38 @@ export default function LandingPage() {
         {/* Mobile dropdown */}
         {menuOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 px-5 py-4 space-y-1">
-            <button 
-              onClick={() => handleNavClick("how-it-works")}
-              className="block w-full text-left text-sm font-medium text-gray-700 py-2.5 border-b border-gray-50"
-            >
+            <button onClick={() => handleNavClick("how-it-works")} className="block w-full text-left text-sm font-medium text-gray-700 py-2.5 border-b border-gray-50">
               How It Works
             </button>
-            <button 
-              onClick={() => handleNavClick("rights")}
-              className="block w-full text-left text-sm font-medium text-gray-700 py-2.5"
-            >
+            <button onClick={() => handleNavClick("rights")} className="block w-full text-left text-sm font-medium text-gray-700 py-2.5 border-b border-gray-50">
               Know Your Rights
             </button>
-            <div className="flex gap-2 pt-3">
-              <button onClick={() => navigate("/login")}    className="flex-1 border-2 border-gray-200 text-sm font-bold text-gray-700 py-3 rounded-xl">Sign In</button>
-              <button onClick={() => navigate("/register")} className="flex-1 bg-gray-900 text-white text-sm font-bold py-3 rounded-xl">Get Started</button>
+            <div className="pt-3">
+              <button
+                onClick={() => { setMenuOpen(false); navigate("/login"); }}
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-bold py-3 rounded-xl"
+              >
+                Get Legal Advice <ArrowRight size={14} />
+              </button>
             </div>
           </div>
         )}
       </nav>
 
-      {/* HERO */}
+      {/* ══ HERO ══ */}
       <section className="relative min-h-screen flex items-center justify-center pt-16 pb-12 px-4 overflow-hidden">
-
-        {/* Background gradient */}
         <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 40%, #f0f4ff 100%)" }} />
-
-        {/* Animated grid */}
         <div className="absolute inset-0 opacity-[0.035]" style={{
           backgroundImage: "linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)",
           backgroundSize: "48px 48px"
         }} />
-
-        {/* Glowing orbs */}
         <div className="absolute top-24 left-[8%] w-72 h-72 rounded-full blur-3xl opacity-25 pointer-events-none"
           style={{ background: "radial-gradient(circle, #818cf8, transparent 70%)" }} />
         <div className="absolute bottom-16 right-[6%] w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
           style={{ background: "radial-gradient(circle, #38bdf8, transparent 70%)" }} />
 
-        {/* Hero content */}
         <div className="relative z-10 w-full max-w-3xl mx-auto text-center">
 
-          {/* Badge - Hide during chat */}
           {activeSection !== "chat" && (
             <div className="inline-flex items-center gap-2 bg-white border border-gray-200 shadow-sm text-gray-600 text-xs font-semibold px-4 py-2 rounded-full mb-7">
               <Sparkles size={12} className="text-amber-500" />
@@ -294,7 +246,6 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Headline with typing effect - Hide during chat */}
           {activeSection !== "chat" && (
             <h1 className="text-4xl sm:text-5xl md:text-[62px] font-black text-gray-900 leading-[1.1] tracking-tight mb-5">
               Get Legal Help for
@@ -308,7 +259,6 @@ export default function LandingPage() {
             </h1>
           )}
 
-          {/* Subheadline - Hide during chat */}
           {activeSection !== "chat" && (
             <p className="text-base sm:text-lg text-gray-500 max-w-xl mx-auto mb-8 leading-relaxed">
               Describe your issue — our AI instantly explains your rights and connects you with a verified Indian lawyer.
@@ -317,12 +267,9 @@ export default function LandingPage() {
 
           {/* AI SEARCH BOX */}
           <div className="relative max-w-2xl mx-auto mb-5">
-            {/* Subtle glow behind box */}
             <div className="absolute -inset-1 rounded-3xl blur-lg opacity-20 pointer-events-none"
               style={{ background: "linear-gradient(135deg, #6366f1, #0ea5e9)" }} />
-
             <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-              {/* Input Section */}
               <div className="flex items-start gap-3 p-4 pb-2">
                 <div className="flex-shrink-0 w-9 h-9 bg-gray-900 rounded-xl flex items-center justify-center shadow mt-0.5">
                   <Sparkles size={15} className="text-white" />
@@ -342,8 +289,6 @@ export default function LandingPage() {
                   style={{ maxHeight: 140 }}
                 />
               </div>
-
-              {/* Action Bar */}
               <div className="flex items-center justify-between px-4 py-3 border-t border-gray-50">
                 <span className="text-[11px] text-gray-400 flex items-center gap-1.5">
                   <Lock size={10} className="text-gray-300" />
@@ -365,7 +310,6 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              {/* AI RESPONSE - Professional Chat Style */}
               {(aiLoading || aiError || aiResponse) && (
                 <div ref={responseRef} className="border-t border-gray-100">
                   {aiLoading && (
@@ -380,7 +324,6 @@ export default function LandingPage() {
                       </div>
                     </div>
                   )}
-
                   {aiError && (
                     <div className="px-6 py-5 bg-red-50 border-t border-red-100">
                       <div className="flex items-center gap-2 text-red-600">
@@ -389,10 +332,8 @@ export default function LandingPage() {
                       </div>
                     </div>
                   )}
-
                   {aiResponse && (
                     <div className="px-6 py-6 bg-gradient-to-b from-gray-50 to-white">
-                      {/* Header with AI icon */}
                       <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
                         <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                           <Scale size={16} className="text-white" />
@@ -402,23 +343,17 @@ export default function LandingPage() {
                           <p className="text-[10px] text-gray-500">Instant legal guidance</p>
                         </div>
                       </div>
-
-                      {/* Response content */}
                       <div className="text-gray-700 text-sm leading-relaxed space-y-4">
                         {aiResponse.split("\n\n").filter(Boolean).map((p, i) => (
                           <p key={i} className="text-gray-700">{p}</p>
                         ))}
                       </div>
-
-                      {/* Disclaimer */}
                       <div className="mt-4 pt-3 border-t border-gray-200">
                         <p className="text-[10px] text-gray-400 flex items-center gap-1">
                           <AlertCircle size={10} />
                           This is general legal information only. Consult a qualified lawyer for advice on your specific situation.
                         </p>
                       </div>
-                      
-                      {/* Signup CTA - Professional card style */}
                       {showSignup && (
                         <div className="mt-5 bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                           <div className="flex items-start gap-3 mb-3">
@@ -431,16 +366,12 @@ export default function LandingPage() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <button 
-                              onClick={() => navigate("/register")}
-                              className="flex-1 bg-gray-900 text-white text-xs font-semibold py-2.5 rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-1"
-                            >
-                              Sign Up Free <ArrowRight size={12} />
+                            <button onClick={() => navigate("/register")}
+                              className="flex-1 bg-gray-900 text-white text-xs font-semibold py-2.5 rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-1">
+                              Register Free <ArrowRight size={12} />
                             </button>
-                            <button 
-                              onClick={() => navigate("/login")}
-                              className="flex-1 border border-gray-200 text-gray-700 text-xs font-semibold py-2.5 rounded-lg hover:bg-gray-50 transition"
-                            >
+                            <button onClick={() => navigate("/login")}
+                              className="flex-1 border border-gray-200 text-gray-700 text-xs font-semibold py-2.5 rounded-lg hover:bg-gray-50 transition">
                               Sign In
                             </button>
                           </div>
@@ -453,12 +384,10 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Quick question chips - Hide during chat */}
           {activeSection !== "chat" && (
             <div className="flex flex-wrap justify-center gap-2 mb-4">
               {QUICK_QUESTIONS.map((q, i) => (
-                <button key={i}
-                  onClick={() => { setQuery(q); handleSearch(q); }}
+                <button key={i} onClick={() => { setQuery(q); handleSearch(q); }}
                   className="text-xs text-gray-600 bg-white border border-gray-200 hover:border-gray-900 hover:text-gray-900 px-3 py-1.5 rounded-full transition-all shadow-sm">
                   {q}
                 </button>
@@ -466,7 +395,6 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Case type badges - Hide during chat */}
           {activeSection !== "chat" && (
             <div className="flex flex-wrap justify-center gap-2">
               {CASE_TYPES.map(({ icon: Icon, label, color, bg }) => (
@@ -477,22 +405,15 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Chat navigation controls */}
           {activeSection === "chat" && (
             <div className="mt-6 flex items-center justify-center gap-4">
-              <button
-                onClick={handleNewQuestion}
-                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm hover:shadow transition-all"
-              >
-                <Search size={14} />
-                New Question
+              <button onClick={handleNewQuestion}
+                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm hover:shadow transition-all">
+                <Search size={14} />New Question
               </button>
-              <button
-                onClick={handleBackToHome}
-                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm hover:shadow transition-all"
-              >
-                <Scale size={14} />
-                Back to Home
+              <button onClick={handleBackToHome}
+                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm hover:shadow transition-all">
+                <Scale size={14} />Back to Home
               </button>
             </div>
           )}
@@ -503,7 +424,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Float keyframe via style tag */}
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(var(--r, 0deg)); }
@@ -511,7 +431,7 @@ export default function LandingPage() {
         }
       `}</style>
 
-      {/* HOW IT WORKS - Hide during chat */}
+      {/* HOW IT WORKS */}
       {activeSection !== "chat" && (
         <section id="how-it-works" className="py-20 px-4 bg-white">
           <div className="max-w-5xl mx-auto">
@@ -520,11 +440,8 @@ export default function LandingPage() {
               <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mt-2">How FindMyLawyer Works</h2>
               <p className="text-gray-500 mt-3 text-sm max-w-md mx-auto">From describing your problem to expert legal help — in minutes, not days.</p>
             </div>
-
             <div className="grid sm:grid-cols-3 gap-6 relative">
-              {/* Connecting line desktop */}
               <div className="hidden sm:block absolute top-[3.5rem] left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-
               {HOW_IT_WORKS.map(({ step, title, desc, icon: Icon }, i) => (
                 <div key={step} className="relative bg-gray-50 border border-gray-100 rounded-3xl p-7 text-center hover:shadow-lg hover:border-gray-200 transition-all duration-300">
                   <div className="relative w-14 h-14 mx-auto mb-5">
@@ -542,7 +459,7 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* KNOW YOUR RIGHTS - Hide during chat */}
+      {/* KNOW YOUR RIGHTS */}
       {activeSection !== "chat" && (
         <section id="rights" className="py-20 px-4" style={{ background: "linear-gradient(135deg,#f8fafc,#f0f4ff)" }}>
           <div className="max-w-5xl mx-auto">
@@ -551,7 +468,6 @@ export default function LandingPage() {
               <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mt-2">Know Your Fundamental Rights</h2>
               <p className="text-gray-500 mt-3 text-sm max-w-md mx-auto">Every Indian citizen has these rights. Understanding them can protect you.</p>
             </div>
-
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {RIGHTS.map(({ icon, right, detail }) => (
                 <div key={right} className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-gray-200 transition-all duration-200">
@@ -561,12 +477,10 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-
             <div className="text-center mt-10">
               <button
                 onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); searchRef.current?.focus(); }}
-                className="inline-flex items-center gap-2 bg-gray-900 text-white text-sm font-bold px-8 py-3.5 rounded-xl hover:bg-gray-800 transition shadow-lg"
-              >
+                className="inline-flex items-center gap-2 bg-gray-900 text-white text-sm font-bold px-8 py-3.5 rounded-xl hover:bg-gray-800 transition shadow-lg">
                 <Search size={15} />Ask AI About Your Rights
               </button>
             </div>
@@ -574,7 +488,7 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* FINAL CTA - Hide during chat */}
+      {/* FINAL CTA */}
       {activeSection !== "chat" && (
         <section className="py-20 px-4 text-white text-center relative overflow-hidden" style={{ background: "linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)" }}>
           <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -583,27 +497,22 @@ export default function LandingPage() {
           }} />
           <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
             style={{ background: "radial-gradient(circle,#818cf8,transparent)" }} />
-
           <div className="relative z-10 max-w-2xl mx-auto">
             <Scale size={40} className="mx-auto text-white/15 mb-5" />
             <h2 className="text-3xl sm:text-4xl font-black mb-4 leading-tight">
               Justice is just a<br />conversation away
             </h2>
             <p className="text-gray-400 text-sm mb-8 max-w-md mx-auto leading-relaxed">
-              Join thousands of Indians who found the right legal help through FindMyLawyer. Free to sign up, no commitments.
+              Join thousands of Indians who found the right legal help through FindMyLawyer.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={() => navigate("/register")}
-                className="flex items-center justify-center gap-2 bg-white text-gray-900 font-bold text-sm px-8 py-4 rounded-xl hover:bg-gray-100 transition shadow-xl"
-              >
-                <ArrowRight size={16} />Create Free Account
+              <button onClick={() => navigate("/register")}
+                className="flex items-center justify-center gap-2 bg-white text-gray-900 font-bold text-sm px-8 py-4 rounded-xl hover:bg-gray-100 transition shadow-xl">
+                <ArrowRight size={16} />Register Free
               </button>
-              <button
-                onClick={() => navigate("/login")}
-                className="flex items-center justify-center gap-2 border border-white/20 text-white font-semibold text-sm px-8 py-4 rounded-xl hover:bg-white/10 transition"
-              >
-                Sign In to Your Account
+              <button onClick={() => navigate("/login")}
+                className="flex items-center justify-center gap-2 border border-white/20 text-white font-semibold text-sm px-8 py-4 rounded-xl hover:bg-white/10 transition">
+                Sign In
               </button>
             </div>
             <p className="text-gray-600 text-xs mt-6">No credit card required · Free AI legal search · Connect in minutes</p>
@@ -611,7 +520,7 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* FOOTER - Always visible */}
+      {/* FOOTER */}
       <footer className="bg-black text-white py-10 px-5 sm:px-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 max-w-none mb-6">
           <div className="flex items-center gap-2.5">
