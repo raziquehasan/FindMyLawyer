@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { User, Mail, Phone, MapPin, Lock, Home, CheckCircle, AlertCircle, Eye, EyeOff, Scale, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { auth, googleProvider } from "../../firebase";
-import { signInWithPopup, createUserWithEmailAndPassword, updateProfile, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
-import { authAPI } from "../../api";
+import { signInWithPopup, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { authAPI, otpAPI } from "../../api";
 
 const FieldWrapper = ({ id, label, required, error, children }) => (
   <div id={`field-${id}`}>
@@ -44,11 +44,10 @@ const rightsFacts = [
   "You have the right to remain silent.",
   "You are entitled to legal aid if you cannot afford a lawyer.",
   "You must be informed of the charges before arrest.",
-  "You have the right to confront and cross-examine witnesses testifying against you.",
-  "You are presumed innocent until proven guilty beyond a reasonable doubt.",
-  "You have the right to an impartial jury of your peers.",
-  "No person can be tried twice for the same crime — this is the right against double jeopardy.",
-  "You have the right to be free from unreasonable searches and seizures.",
+  "You have the right to confront and cross-examine witnesses.",
+  "You are presumed innocent until proven guilty.",
+  "No person can be tried twice for the same crime.",
+  "You have the right to be free from unreasonable searches.",
   "You have the right to know the reason for your arrest.",
 ];
 
@@ -65,15 +64,13 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm,  setShowConfirm]  = useState(false);
 
-  // OTP state
   const [otpSent,      setOtpSent]      = useState(false);
   const [otpInput,     setOtpInput]     = useState("");
   const [otpVerified,  setOtpVerified]  = useState(false);
   const [otpError,     setOtpError]     = useState("");
   const [sendingOtp,   setSendingOtp]   = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [otpTimer,     setOtpTimer]     = useState(0);
-  const [confirmResult,setConfirmResult]= useState(null);
-  const [showRecaptcha,setShowRecaptcha]= useState(false);
 
   const [citySearch,   setCitySearch]   = useState("");
   const [showCityDrop, setShowCityDrop] = useState(false);
@@ -137,7 +134,7 @@ export default function Register() {
     return e;
   };
 
-  // ── GOOGLE REGISTER ──────────────────────────────────
+  // ── GOOGLE ───────────────────────────────────────────
   const handleGoogle = async () => {
     setGLoading(true); setErrors({});
     try {
@@ -153,7 +150,7 @@ export default function Register() {
     } finally { setGLoading(false); }
   };
 
-  // ── SEND REAL OTP ─────────────────────────────────────
+  // ── SEND OTP (no reCAPTCHA!) ─────────────────────────
   const handleSendOtp = async () => {
     const cleaned = formData.phone.replace(/\s/g,"");
     if (!/^[6-9]\d{9}$/.test(cleaned)) {
@@ -161,58 +158,31 @@ export default function Register() {
     }
     setSendingOtp(true); setOtpError("");
     try {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-register", {
-        size: "normal",
-        callback: async (token) => {
-          // reCAPTCHA solved — now send OTP
-          const result = await signInWithPhoneNumber(auth, `+91${cleaned}`, window.recaptchaVerifier);
-          setConfirmResult(result);
-          setOtpSent(true);
-          setShowRecaptcha(false);
-          let s = 30; setOtpTimer(s);
-          const iv = setInterval(() => { s--; setOtpTimer(s); if (s<=0) clearInterval(iv); }, 1000);
-          setSendingOtp(false);
-        },
-        "expired-callback": () => {
-          window.recaptchaVerifier = null;
-          setShowRecaptcha(false);
-          setSendingOtp(false);
-          setOtpError("reCAPTCHA expired. Please try again.");
-        },
-      });
-      await window.recaptchaVerifier.render();
-      setShowRecaptcha(true);
-      setSendingOtp(false);
+      await otpAPI.send(cleaned);
+      setOtpSent(true);
+      let s = 30; setOtpTimer(s);
+      const iv = setInterval(() => { s--; setOtpTimer(s); if (s<=0) clearInterval(iv); }, 1000);
     } catch (err) {
-      console.error("OTP error:", err);
-      setOtpError("Failed to send OTP. Please try again.");
-      if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; }
-      setSendingOtp(false);
-    }
+      setOtpError(err.message || "Failed to send OTP. Please try again.");
+    } finally { setSendingOtp(false); }
   };
 
-  const [verifying, setVerifying] = useState(false);
-
+  // ── VERIFY OTP ───────────────────────────────────────
   const handleVerifyOtp = async () => {
     if (!otpInput || otpInput.length < 6) { setOtpError("Enter the 6-digit OTP"); return; }
-    setVerifying(true);
+    setVerifyingOtp(true); setOtpError("");
     try {
-      await confirmResult.confirm(otpInput);
-      setOtpVerified(true); setOtpError("");
-      if (errors.otp) setErrors({ ...errors, otp:"" });
-    } catch {
-      setOtpError("Incorrect OTP. Please try again.");
-    } finally { setVerifying(false); }
+      await otpAPI.verify(formData.phone, otpInput);
+      setOtpVerified(true);
+    } catch (err) {
+      setOtpError(err.message || "Incorrect OTP. Please try again.");
+    } finally { setVerifyingOtp(false); }
   };
 
-  // ── REGISTER ──────────────────────────────────────────
+  // ── REGISTER ─────────────────────────────────────────
   const handleRegister = async () => {
     if (!otpVerified) {
-      setErrors(p => ({ ...p, otp:"Please verify your phone number with OTP first." }));
+      setErrors(p => ({ ...p, phone: "Please verify your phone number first." }));
       document.getElementById("field-phone")?.scrollIntoView({ behavior:"smooth", block:"center" });
       return;
     }
@@ -224,10 +194,8 @@ export default function Register() {
     }
     setLoading(true); setErrors({});
     try {
-      // Create Firebase email/password account
       const result = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       await updateProfile(result.user, { displayName: formData.fullName });
-      // Save to MongoDB
       const { user } = await authAPI.register({
         name: formData.fullName, email: formData.email,
         phone: formData.phone, city: formData.city,
@@ -239,8 +207,6 @@ export default function Register() {
     } catch (err) {
       if (err.code === "auth/email-already-in-use")
         setErrors({ email: "Email already registered. Please login." });
-      else if (err.message?.includes("email"))
-        setErrors({ email: err.message });
       else
         setErrors({ general: err.message || "Registration failed." });
     } finally { setLoading(false); }
@@ -253,7 +219,6 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
-      <div id="recaptcha-register" className={showRecaptcha ? "flex justify-center my-3" : "hidden"}/>
       <div className="flex-1 flex justify-center px-4 py-10">
         <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl p-6 sm:p-10 h-fit">
 
@@ -265,7 +230,7 @@ export default function Register() {
             <p className="text-sm text-gray-500 mt-1">Join FindMyLawyer as a client</p>
           </div>
 
-          {/* Google button */}
+          {/* Google */}
           <button onClick={handleGoogle} disabled={gLoading}
             className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 hover:border-gray-400 text-gray-700 font-semibold text-sm py-3 rounded-xl transition-all shadow-sm hover:shadow-md mb-4 disabled:opacity-60">
             {gLoading
@@ -293,52 +258,39 @@ export default function Register() {
           )}
 
           <div className="space-y-5">
-            {/* Name + Email */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <FieldWrapper id="fullName" label="Full Name" required error={errors.fullName}>
                 <div className={inputClass("fullName")}>
                   <User size={17} className="text-gray-400 mr-2 flex-shrink-0"/>
-                  <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="John Doe" className="w-full outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400"/>
+                  <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="John Doe" className="w-full outline-none bg-transparent text-sm"/>
                 </div>
               </FieldWrapper>
               <FieldWrapper id="email" label="Email" required error={errors.email}>
                 <div className={inputClass("email")}>
                   <Mail size={17} className="text-gray-400 mr-2 flex-shrink-0"/>
-                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" className="w-full outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400"/>
+                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="john@example.com" className="w-full outline-none bg-transparent text-sm"/>
                 </div>
               </FieldWrapper>
             </div>
 
-            {/* Phone + Real OTP */}
+            {/* Phone + OTP */}
             <FieldWrapper id="phone" label="Phone Number" required error={errors.phone}>
               <div className="flex gap-2">
                 <div className={`flex-1 ${inputClass("phone")}`}>
-                  <span className="text-sm text-gray-500 mr-2 font-medium flex-shrink-0">+91</span>
+                  <span className="text-sm text-gray-500 mr-2 font-medium flex-shrink-0 border-r border-gray-200 pr-2">+91</span>
                   <input type="tel" name="phone" value={formData.phone} maxLength={10} disabled={otpVerified}
-                    onChange={e => { handleChange(e); setOtpSent(false); setOtpVerified(false); setOtpInput(""); setOtpError(""); if(errors.otp) setErrors(p=>({...p,otp:""})); }}
+                    onChange={e => { handleChange(e); setOtpSent(false); setOtpVerified(false); setOtpInput(""); setOtpError(""); }}
                     placeholder="9876543210"
-                    className="w-full outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400 disabled:opacity-60"/>
+                    className="w-full outline-none bg-transparent text-sm ml-2 disabled:opacity-60"/>
                   {otpVerified && <CheckCircle size={17} className="text-emerald-500 flex-shrink-0"/>}
                 </div>
                 {!otpVerified && (
                   <button type="button" onClick={handleSendOtp} disabled={sendingOtp || otpTimer > 0}
-                    className="flex-shrink-0 bg-gray-900 text-white text-xs font-semibold px-4 py-3 rounded-xl hover:bg-gray-700 transition disabled:opacity-50 whitespace-nowrap">
-                    {sendingOtp ? "Sending…" : otpTimer > 0 ? `Resend in ${otpTimer}s` : otpSent ? "Resend OTP" : "Send OTP"}
+                    className="flex-shrink-0 bg-gray-900 text-white text-xs font-semibold px-4 py-3 rounded-xl hover:bg-gray-700 transition disabled:opacity-50 whitespace-nowrap min-w-[100px]">
+                    {sendingOtp ? "Sending…" : otpTimer > 0 ? `Resend ${otpTimer}s` : otpSent ? "Resend OTP" : "Send OTP"}
                   </button>
                 )}
               </div>
-              {errors.otp && (
-                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-2">
-                  <AlertCircle size={14} className="text-amber-600 flex-shrink-0"/>
-                  <p className="text-xs text-amber-700 font-medium">{errors.otp}</p>
-                </div>
-              )}
-              {otpError && (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mt-2">
-                  <AlertCircle size={14} className="text-red-500 flex-shrink-0"/>
-                  <p className="text-xs text-red-600 font-medium">{otpError}</p>
-                </div>
-              )}
             </FieldWrapper>
 
             {otpSent && !otpVerified && (
@@ -350,18 +302,17 @@ export default function Register() {
                 <FieldWrapper id="otp" label="Enter OTP" required error={otpError}>
                   <div className="flex gap-2">
                     <div className={`flex-1 flex items-center border-2 rounded-xl px-4 py-3 transition-all ${otpError ? "border-red-400 bg-red-50" : "border-gray-200 focus-within:border-gray-900"}`}>
-                      <input type="text" value={otpInput} onChange={e => { setOtpInput(e.target.value.replace(/\D/g,"")); setOtpError(""); }}
+                      <input type="text" value={otpInput}
+                        onChange={e => { setOtpInput(e.target.value.replace(/\D/g,"")); setOtpError(""); }}
                         placeholder="Enter 6-digit OTP" maxLength={6}
-                        className="w-full outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400 tracking-widest font-mono"/>
+                        className="w-full outline-none bg-transparent text-sm tracking-widest font-mono"/>
                     </div>
-                    <button type="button" onClick={handleVerifyOtp} disabled={verifying}
-                      className="flex-shrink-0 bg-emerald-600 text-white text-xs font-semibold px-4 py-3 rounded-xl hover:bg-emerald-700 transition disabled:opacity-60 flex items-center gap-1.5">
-                      {verifying
-                        ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Verifying...</>
-                        : "Verify ✓"}
+                    <button type="button" onClick={handleVerifyOtp} disabled={verifyingOtp}
+                      className="flex-shrink-0 bg-emerald-600 text-white text-xs font-semibold px-4 py-3 rounded-xl hover:bg-emerald-700 transition disabled:opacity-60">
+                      {verifyingOtp ? "Verifying…" : "Verify"}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">+91 {formData.phone} {otpTimer > 0 && `· Resend in ${otpTimer}s`}</p>
+                  <p className="text-xs text-gray-400 mt-1">{otpTimer > 0 ? `Resend available in ${otpTimer}s` : "You can resend OTP now"}</p>
                 </FieldWrapper>
               </>
             )}
@@ -369,17 +320,16 @@ export default function Register() {
             {otpVerified && (
               <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
                 <CheckCircle size={16} className="text-emerald-600 flex-shrink-0"/>
-                <p className="text-sm text-emerald-700 font-semibold">Phone number verified!</p>
+                <p className="text-sm text-emerald-700 font-semibold">Phone number verified successfully!</p>
               </div>
             )}
 
-            {/* Pincode + City */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <FieldWrapper id="pincode" label="Pincode" required error={errors.pincode}>
                 <div className={inputClass("pincode")}>
                   <Home size={17} className="text-gray-400 mr-2 flex-shrink-0"/>
                   <input type="text" name="pincode" value={formData.pincode} onChange={handlePincodeChange} placeholder="110001" maxLength={6}
-                    className="w-full outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400"/>
+                    className="w-full outline-none bg-transparent text-sm"/>
                 </div>
                 {pincodeMsg && <p className={`text-xs mt-1 ${pincodeMsg.startsWith("✓") ? "text-emerald-600" : "text-amber-600"}`}>{pincodeMsg}</p>}
               </FieldWrapper>
@@ -392,7 +342,7 @@ export default function Register() {
                       onChange={e => { setCitySearch(e.target.value); setFormData(p=>({...p,city:e.target.value})); setShowCityDrop(true); if(errors.city) setErrors(p=>({...p,city:""})); }}
                       onFocus={() => setShowCityDrop(true)}
                       placeholder="Search city…"
-                      className="w-full outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400"/>
+                      className="w-full outline-none bg-transparent text-sm"/>
                     <Search size={14} className="text-gray-400 flex-shrink-0"/>
                   </div>
                   {showCityDrop && filteredCities.length > 0 && (
@@ -408,14 +358,13 @@ export default function Register() {
               </FieldWrapper>
             </div>
 
-            {/* Password */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <FieldWrapper id="password" label="Password" required error={errors.password}>
                 <div className={inputClass("password")}>
                   <Lock size={17} className="text-gray-400 mr-2 flex-shrink-0"/>
                   <input type={showPassword?"text":"password"} name="password" value={formData.password} onChange={handleChange} placeholder="Min 6 characters"
-                    className="w-full outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400"/>
-                  <button type="button" onClick={()=>setShowPassword(!showPassword)} className="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-1">
+                    className="w-full outline-none bg-transparent text-sm"/>
+                  <button type="button" onClick={()=>setShowPassword(!showPassword)} className="text-gray-400 hover:text-gray-600 ml-1">
                     {showPassword?<EyeOff size={16}/>:<Eye size={16}/>}
                   </button>
                 </div>
@@ -424,8 +373,8 @@ export default function Register() {
                 <div className={inputClass("confirmPassword")}>
                   <Lock size={17} className="text-gray-400 mr-2 flex-shrink-0"/>
                   <input type={showConfirm?"text":"password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Re-enter password"
-                    className="w-full outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400"/>
-                  <button type="button" onClick={()=>setShowConfirm(!showConfirm)} className="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-1">
+                    className="w-full outline-none bg-transparent text-sm"/>
+                  <button type="button" onClick={()=>setShowConfirm(!showConfirm)} className="text-gray-400 hover:text-gray-600 ml-1">
                     {showConfirm?<EyeOff size={16}/>:<Eye size={16}/>}
                   </button>
                 </div>
@@ -434,7 +383,7 @@ export default function Register() {
           </div>
 
           <button onClick={handleRegister} disabled={loading}
-            className="w-full bg-gray-900 text-white py-3.5 rounded-xl mt-8 font-semibold text-sm hover:bg-gray-700 transition-all shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:scale-100 flex items-center justify-center gap-2">
+            className="w-full bg-gray-900 text-white py-3.5 rounded-xl mt-8 font-semibold text-sm hover:bg-gray-700 transition-all shadow-md disabled:opacity-60 flex items-center justify-center gap-2">
             {loading
               ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Creating account...</>
               : "Create Account →"}

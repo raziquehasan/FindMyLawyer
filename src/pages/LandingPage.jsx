@@ -1,40 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Scale, Search, ArrowRight, Sparkles,
-  Lock, Menu, X, AlertCircle, Gavel,
-  Shield
+  Scale, Search, ArrowRight, Lock, Menu, X, AlertCircle, Gavel, Shield
 } from "lucide-react";
 
-/* ─────────────────────────────────────────────
-   MOCK AI RESPONSE - NO ACTUAL API CALL
-───────────────────────────────────────────── */
 async function askLegalAI(question) {
-  // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  // Mock responses based on keywords
   const lower = question.toLowerCase();
-  
   if (lower.includes("landlord") || lower.includes("security deposit")) {
     return "Under Indian law, a landlord must return your security deposit within a reasonable time after you vacate (typically 30-45 days). If they're withholding it without reason, you can send a legal notice through a property lawyer.\n\nA property dispute lawyer can help you recover your deposit. They'll send a formal legal notice and if needed, file a case in the civil court.\n\nFor personalized legal advice, sign up on FindMyLawyer and connect with a verified property lawyer.";
   }
-  
   if (lower.includes("cheque bounce")) {
     return "A cheque bounce is a criminal offense under Section 138 of the Negotiable Instruments Act. You must send a legal notice within 30 days of the cheque bounce, and the other party has 15 days to pay. If they don't, you can file a complaint in court.\n\nA criminal lawyer specializing in cheque bounce cases can guide you through this process and represent you in court.\n\nFor personalized legal advice, sign up on FindMyLawyer and connect with a verified criminal lawyer.";
   }
-  
   if (lower.includes("salary") || lower.includes("employer") || lower.includes("paid")) {
     return "Non-payment of salary is a violation of your rights under the Payment of Wages Act. Your employer is legally obligated to pay your salary on time. You can first send a formal legal notice demanding payment.\n\nIf they still don't pay, you can file a case in the labour court or before the Deputy Labour Commissioner. A labour law lawyer can help you recover your dues with interest.\n\nFor personalized legal advice, sign up on FindMyLawyer and connect with a verified labour law lawyer.";
   }
-  
-  // Default response
   return "Based on your query, you may have legal remedies available under Indian law. It's best to consult with a specialized lawyer who can review your documents and provide personalized advice.\n\nYou might need a lawyer specializing in this area of law. They can guide you on the next steps, whether it's sending a legal notice, filing a case, or negotiating a settlement.\n\nFor personalized legal advice, sign up on FindMyLawyer and connect with a verified lawyer who specializes in your type of case.";
 }
 
-/* ─────────────────────────────────────────────
-   DATA
-───────────────────────────────────────────── */
 const QUICK_QUESTIONS = [
   "My landlord is not returning my security deposit",
   "I received a legal notice for cheque bounce",
@@ -42,9 +26,9 @@ const QUICK_QUESTIONS = [
 ];
 
 const HOW_IT_WORKS = [
-  { step: "01", title: "Describe Your Issue",    desc: "Use our AI search to explain your legal problem in plain, simple language.",         icon: Search   },
-  { step: "02", title: "Understand Your Rights", desc: "Get instant AI guidance on your legal rights and which type of lawyer you need.",    icon: Shield },
-  { step: "03", title: "Connect with a Lawyer",  desc: "Sign up and book a consultation with a verified, background-checked lawyer.",        icon: Gavel    },
+  { step: "01", title: "Describe Your Issue",    desc: "Use our AI search to explain your legal problem in plain, simple language.",       icon: Search },
+  { step: "02", title: "Understand Your Rights", desc: "Get instant AI guidance on your legal rights and which type of lawyer you need.",  icon: Shield },
+  { step: "03", title: "Connect with a Lawyer",  desc: "Sign up and book a consultation with a verified, background-checked lawyer.",      icon: Gavel  },
 ];
 
 const RIGHTS_FACTS = [
@@ -54,25 +38,22 @@ const RIGHTS_FACTS = [
   "You must be informed of the charges before arrest.",
 ];
 
-/* ═══════════════════════════════════════════
-   COMPONENT
-═══════════════════════════════════════════ */
 export default function LandingPage() {
-  const navigate  = useNavigate();
-  const searchRef = useRef(null);
+  const navigate    = useNavigate();
+  const searchRef   = useRef(null);
   const responseRef = useRef(null);
 
-  const [menuOpen,   setMenuOpen]   = useState(false);
-  const [query,      setQuery]      = useState("");
-  const [aiResponse, setAiResponse] = useState("");
-  const [aiLoading,  setAiLoading]  = useState(false);
-  const [aiError,    setAiError]    = useState("");
-  const [typedText,  setTypedText]  = useState("");
-  const [phraseIdx,  setPhraseIdx]  = useState(0);
-  const [scrolled,   setScrolled]   = useState(false);
+  const [menuOpen,    setMenuOpen]    = useState(false);
+  const [query,       setQuery]       = useState("");
+  const [aiResponse,  setAiResponse]  = useState("");
+  const [aiLoading,   setAiLoading]   = useState(false);
+  const [aiError,     setAiError]     = useState("");
+  const [typedText,   setTypedText]   = useState("");
+  const [phraseIdx,   setPhraseIdx]   = useState(0);
+  const [scrolled,    setScrolled]    = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [factIndex, setFactIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
+  const [factIndex,   setFactIndex]   = useState(0);
+  const [visible,     setVisible]     = useState(true);
 
   const phrases = ["Criminal Cases", "Family Disputes", "Property Issues", "Corporate Matters", "Consumer Rights"];
 
@@ -83,10 +64,7 @@ export default function LandingPage() {
     const iv = setInterval(() => {
       setTypedText(phrase.slice(0, i + 1));
       i++;
-      if (i === phrase.length) {
-        clearInterval(iv);
-        setTimeout(() => setPhraseIdx(p => (p + 1) % phrases.length), 2000);
-      }
+      if (i === phrase.length) { clearInterval(iv); setTimeout(() => setPhraseIdx(p => (p + 1) % phrases.length), 2000); }
     }, 65);
     return () => clearInterval(iv);
   }, [phraseIdx]);
@@ -103,66 +81,43 @@ export default function LandingPage() {
     }
   }, [aiResponse, aiError]);
 
-  // Footer rotation effect - exactly like Login page
   useEffect(() => {
-    const interval = setInterval(() => {
+    const iv = setInterval(() => {
       setVisible(false);
-      setTimeout(() => {
-        setFactIndex((prev) => {
-          const nextIndex = prev + 1;
-          return nextIndex >= RIGHTS_FACTS.length ? 0 : nextIndex;
-        });
-        setVisible(true);
-      }, 400);
+      setTimeout(() => { setFactIndex(p => (p + 1) % RIGHTS_FACTS.length); setVisible(true); }, 400);
     }, 4000);
-
-    return () => clearInterval(interval);
-  }, [RIGHTS_FACTS.length]);
+    return () => clearInterval(iv);
+  }, []);
 
   const handleSearch = async (q) => {
     const question = (q || query).trim();
     if (!question) return;
-    
     setQuery(question);
     setAiLoading(true);
     setAiError("");
     setAiResponse("");
     setShowResults(true);
-    
     try {
       const answer = await askLegalAI(question);
       setAiResponse(answer);
-    } catch (error) {
+    } catch {
       setAiError("Unable to process your request. Please try again.");
-      console.error("AI Error:", error);
     } finally {
       setAiLoading(false);
     }
   };
 
-  const handleNewQuestion = () => {
-    setQuery(""); 
-    setAiResponse(""); 
-    setAiError(""); 
-    setShowResults(false);
-    setTimeout(() => searchRef.current?.focus(), 100);
-  };
-
   const handleBackToHome = () => {
-    setQuery(""); 
-    setAiResponse(""); 
-    setAiError(""); 
-    setShowResults(false);
+    setQuery(""); setAiResponse(""); setAiError(""); setShowResults(false);
+    setTimeout(() => searchRef.current?.focus(), 100);
   };
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden flex flex-col">
 
-      {/* ══ NAVBAR ══ */}
+      {/* NAVBAR */}
       <nav className={`fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b transition-all duration-300 ${scrolled ? "shadow-lg border-gray-200" : "shadow-none border-transparent"}`}>
         <div className="flex items-center justify-between px-5 sm:px-8 py-3.5">
-
-          {/* LEFT — Logo - Click to go to login */}
           <button onClick={() => navigate("/login")} className="flex items-center gap-2.5 flex-shrink-0 hover:opacity-80 transition">
             <div className="bg-gray-900 p-1.5 rounded-xl">
               <Scale size={18} className="text-white" />
@@ -173,43 +128,32 @@ export default function LandingPage() {
             </div>
           </button>
 
-          {/* CENTRE — Nav links */}
           <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-            <button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })} 
+            <button onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
               className="text-sm text-gray-500 hover:text-gray-900 font-medium transition-colors">
               How It Works
             </button>
           </div>
 
-          {/* RIGHT — Single CTA */}
-          <button
-            onClick={() => navigate("/login")}
-            className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md flex-shrink-0"
-          >
-            Get Legal Advice
-            <ArrowRight size={14} />
+          <button onClick={() => navigate("/login")}
+            className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md flex-shrink-0">
+            Get Legal Advice <ArrowRight size={14} />
           </button>
 
-          {/* Mobile hamburger */}
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-gray-700 flex-shrink-0">
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
 
-        {/* Mobile dropdown */}
         {menuOpen && (
           <div className="md:hidden bg-white border-t border-gray-100 px-5 py-4 space-y-1">
-            <button onClick={() => { 
-              document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); 
-              setMenuOpen(false);
-            }} className="block w-full text-left text-sm font-medium text-gray-700 py-2.5 border-b border-gray-50">
+            <button onClick={() => { document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" }); setMenuOpen(false); }}
+              className="block w-full text-left text-sm font-medium text-gray-700 py-2.5 border-b border-gray-50">
               How It Works
             </button>
             <div className="pt-3">
-              <button
-                onClick={() => { setMenuOpen(false); navigate("/login"); }}
-                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-bold py-3 rounded-xl"
-              >
+              <button onClick={() => { setMenuOpen(false); navigate("/login"); }}
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white text-sm font-bold py-3 rounded-xl">
                 Get Legal Advice <ArrowRight size={14} />
               </button>
             </div>
@@ -217,7 +161,7 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* HERO SECTION - Content with exact spacing as requested */}
+      {/* HERO */}
       <section className="relative min-h-screen flex flex-col items-center justify-start pt-32 px-4 overflow-hidden">
         <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #ffffff 40%, #f0f4ff 100%)" }} />
         <div className="absolute inset-0 opacity-[0.035]" style={{
@@ -230,8 +174,6 @@ export default function LandingPage() {
           style={{ background: "radial-gradient(circle, #38bdf8, transparent 70%)" }} />
 
         <div className="relative z-10 w-full max-w-4xl mx-auto text-center">
-
-          {/* 1. Title at the top */}
           <h1 className="text-4xl sm:text-5xl md:text-[62px] font-black text-gray-900 leading-[1.1] tracking-tight">
             Get Legal Help for
             <br />
@@ -243,18 +185,15 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          {/* 2. Space after title */}
-          <div className="h-12"></div>
+          <div className="h-12" />
 
-          {/* 3. Description */}
           <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
             Describe your issue — our AI instantly explains your rights and connects you with a verified Indian lawyer.
           </p>
 
-          {/* 4. Space after description */}
-          <div className="h-12"></div>
+          <div className="h-12" />
 
-          {/* 5. Search bar - normal white background with always black button */}
+          {/* Search box */}
           <div className="relative max-w-2xl mx-auto">
             <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
               <div className="flex items-center gap-2 p-1">
@@ -270,23 +209,11 @@ export default function LandingPage() {
                     className="w-full bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 py-2"
                   />
                 </div>
-                <button
-                  onClick={() => handleSearch()}
-                  disabled={!query.trim() || aiLoading}
-                  className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 mr-1 ${
-                    query.trim() && !aiLoading
-                      ? "bg-gray-900 text-white hover:bg-gray-800 shadow-md"
-                      : "bg-gray-900 text-white/70 cursor-not-allowed opacity-70"
-                  }`}
-                >
-                  {aiLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Search size={16} />
-                      <span>Search</span>
-                    </>
-                  )}
+                <button onClick={() => handleSearch()} disabled={!query.trim() || aiLoading}
+                  className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 mr-1 ${query.trim() && !aiLoading ? "bg-gray-900 text-white hover:bg-gray-800 shadow-md" : "bg-gray-900 text-white/70 cursor-not-allowed opacity-70"}`}>
+                  {aiLoading
+                    ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <><Search size={16} /><span>Search</span></>}
                 </button>
               </div>
             </div>
@@ -297,9 +224,7 @@ export default function LandingPage() {
                   <div className="px-6 py-6 bg-gradient-to-b from-gray-50 to-white">
                     <div className="flex items-center gap-3 text-gray-500">
                       <div className="flex gap-1.5">
-                        {[0, 150, 300].map(d => (
-                          <span key={d} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                        ))}
+                        {[0,150,300].map(d => <span key={d} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />)}
                       </div>
                       <span className="text-sm font-medium">Analyzing your legal situation...</span>
                     </div>
@@ -308,8 +233,7 @@ export default function LandingPage() {
                 {aiError && (
                   <div className="px-6 py-5 bg-red-50 border-t border-red-100">
                     <div className="flex items-center gap-2 text-red-600">
-                      <AlertCircle size={18} />
-                      <span className="text-sm font-medium">{aiError}</span>
+                      <AlertCircle size={18} /><span className="text-sm font-medium">{aiError}</span>
                     </div>
                   </div>
                 )}
@@ -325,9 +249,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <div className="text-gray-700 text-sm leading-relaxed space-y-4">
-                      {aiResponse.split("\n\n").filter(Boolean).map((p, i) => (
-                        <p key={i} className="text-gray-700">{p}</p>
-                      ))}
+                      {aiResponse.split("\n\n").filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
                     </div>
                     <div className="mt-4 pt-3 border-t border-gray-200">
                       <p className="text-[10px] text-gray-400 flex items-center gap-1">
@@ -341,10 +263,9 @@ export default function LandingPage() {
             )}
           </div>
 
-          {/* 6. Space after search bar */}
-          <div className="h-12"></div>
+          <div className="h-12" />
 
-          {/* 7. Quick questions */}
+          {/* Quick questions — only when no results */}
           {!showResults && (
             <div className="flex flex-wrap justify-center gap-3">
               {QUICK_QUESTIONS.map((q, i) => (
@@ -356,28 +277,25 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Back/New buttons - only show when results are visible */}
+          {/* When results shown: Back to Home + highlighted FindMyLawyer button */}
           {showResults && (
-            <div className="mt-6 flex items-center justify-center gap-4">
-              <button onClick={handleNewQuestion}
+            <div className="mt-6 flex items-center justify-center gap-4 flex-wrap">
+              <button onClick={handleBackToHome}
                 className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-5 py-2.5 rounded-full shadow-sm hover:shadow transition-all">
-                <Search size={14} />New Question
+                ← Back to Home
               </button>
               <button onClick={() => navigate("/login")}
-                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-5 py-2.5 rounded-full shadow-sm hover:shadow transition-all">
-                <Scale size={14} />FindMyLawyer
+                className="inline-flex items-center gap-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-6 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all">
+                <Scale size={14} />
+                FindMyLawyer — Connect with a Lawyer
+                <ArrowRight size={14} />
               </button>
             </div>
           )}
         </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-400 animate-bounce">
-          <ArrowRight size={20} className="rotate-90" />
-        </div>
       </section>
 
-      {/* HOW IT WORKS - Becomes visible on scroll */}
+      {/* HOW IT WORKS */}
       {!showResults && (
         <section id="how-it-works" className="py-20 px-4 bg-white">
           <div className="max-w-5xl mx-auto">
@@ -405,31 +323,22 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* KNOW YOUR RIGHTS FOOTER */}
-      {RIGHTS_FACTS.length > 0 && (
-        <footer className="w-full bg-gray-900 text-white py-3 px-4 flex-shrink-0">
-          <div className="max-w-2xl mx-auto flex flex-col items-center text-center">
-            <div className="flex items-center justify-center gap-2 mb-1.5">
-              <Scale size={12} className="text-gray-500" />
-              <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500 font-semibold">
-                Know Your Legal Rights
-              </span>
-              <Scale size={12} className="text-gray-500" />
-            </div>
-            <p
-              className="text-xs sm:text-sm text-white font-medium leading-relaxed transition-opacity duration-500 px-2 max-w-lg"
-              style={{ opacity: visible ? 1 : 0 }}
-            >
-              "{RIGHTS_FACTS[factIndex] || RIGHTS_FACTS[0]}"
-            </p>
-            <div className="w-full border-t border-gray-800 mt-2 pt-2">
-              <p className="text-[9px] sm:text-[10px] text-gray-600">
-                © {new Date().getFullYear()} FindMyLawyer · All rights reserved
-              </p>
-            </div>
+      {/* FOOTER */}
+      <footer className="w-full bg-gray-900 text-white py-3 px-4 flex-shrink-0">
+        <div className="max-w-2xl mx-auto flex flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-2 mb-1.5">
+            <Scale size={12} className="text-gray-500" />
+            <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-500 font-semibold">Know Your Legal Rights</span>
+            <Scale size={12} className="text-gray-500" />
           </div>
-        </footer>
-      )}
+          <p className="text-xs sm:text-sm text-white font-medium leading-relaxed transition-opacity duration-500 px-2 max-w-lg" style={{ opacity: visible ? 1 : 0 }}>
+            "{RIGHTS_FACTS[factIndex]}"
+          </p>
+          <div className="w-full border-t border-gray-800 mt-2 pt-2">
+            <p className="text-[9px] sm:text-[10px] text-gray-600">© {new Date().getFullYear()} FindMyLawyer · All rights reserved</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

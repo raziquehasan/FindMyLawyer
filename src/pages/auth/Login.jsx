@@ -1,18 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   User, Briefcase, Mail, Lock, ArrowRight, Scale, AlertCircle, Eye, EyeOff,
-  Shield, Zap, BadgeCheck, Phone
+  Shield, Zap, BadgeCheck, Phone, CheckCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth, googleProvider } from "../../firebase";
-import {
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  onAuthStateChanged,
-} from "firebase/auth";
-import { authAPI } from "../../api";
+import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { authAPI, otpAPI } from "../../api";
 
 const FACTS = [
   "You have the right to consult a lawyer before questioning.",
@@ -23,21 +17,23 @@ const FACTS = [
 
 export default function Login() {
   const [role,      setRole]      = useState("client");
-  const [tab,       setTab]       = useState("email"); // "email" | "phone"
+  const [tab,       setTab]       = useState("email");
   const [email,     setEmail]     = useState("");
   const [password,  setPassword]  = useState("");
   const [showPw,    setShowPw]    = useState(false);
   const [phone,     setPhone]     = useState("");
   const [otp,       setOtp]       = useState("");
   const [otpSent,   setOtpSent]   = useState(false);
-  const [confirm,   setConfirm]   = useState(null);
+  const [otpVerified, setOtpVerified] = useState(false);
   const [errors,    setErrors]    = useState({});
   const [loading,   setLoading]   = useState(false);
   const [gLoading,  setGLoading]  = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [otpTimer,  setOtpTimer]  = useState(0);
+  const [otpError,  setOtpError]  = useState("");
   const [factIndex, setFactIndex] = useState(0);
   const [visible,   setVisible]   = useState(true);
-  const recaptchaRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -58,9 +54,8 @@ export default function Login() {
     }));
   };
 
-  const redirect = (user) => {
-    const email = user.email || user.phoneNumber;
-    const raw = localStorage.getItem(`bookings_${email?.toLowerCase()}`);
+  const redirect = (userEmail) => {
+    const raw = localStorage.getItem(`bookings_${userEmail?.toLowerCase()}`);
     navigate(raw && JSON.parse(raw).length > 0 ? "/my-cases" : "/client-dashboard");
   };
 
@@ -72,8 +67,8 @@ export default function Login() {
       const result = await signInWithPopup(auth, googleProvider);
       await authAPI.google(result.user.uid, result.user.displayName, result.user.email, result.user.photoURL);
       saveSession(result.user);
-      redirect(result.user);
-    } catch (err) {
+      redirect(result.user.email);
+    } catch {
       setErrors({ general: "Google sign-in failed. Please try again." });
     } finally { setGLoading(false); }
   };
@@ -86,13 +81,12 @@ export default function Login() {
     if (!password.trim()) errs.password = "Please enter your password";
     if (Object.keys(errs).length) { setErrors(errs); return; }
     if (role === "lawyer") { alert("Lawyer login coming soon."); return; }
-
     setLoading(true); setErrors({});
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       await authAPI.google(result.user.uid, result.user.displayName, result.user.email, result.user.photoURL);
       saveSession(result.user);
-      redirect(result.user);
+      redirect(result.user.email);
     } catch (err) {
       if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential")
         setErrors({ email: "No account found. Please register first." });
@@ -103,52 +97,39 @@ export default function Login() {
     } finally { setLoading(false); }
   };
 
-  // ── PHONE OTP ────────────────────────────────────────
-  const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-        callback: () => {},
-      });
-    }
-  };
-
+  // ── PHONE OTP (no reCAPTCHA!) ────────────────────────
   const handleSendOtp = async () => {
     const cleaned = phone.replace(/\s/g, "");
     if (!/^[6-9]\d{9}$/.test(cleaned)) {
       setErrors({ phone: "Enter a valid 10-digit Indian mobile number" }); return;
     }
-    setLoading(true); setErrors({});
+    setSendingOtp(true); setOtpError(""); setErrors({});
     try {
-      setupRecaptcha();
-      const result = await signInWithPhoneNumber(auth, `+91${cleaned}`, window.recaptchaVerifier);
-      setConfirm(result);
+      await otpAPI.send(cleaned);
       setOtpSent(true);
-      let s = 60;
-      setOtpTimer(s);
+      let s = 30; setOtpTimer(s);
       const iv = setInterval(() => { s--; setOtpTimer(s); if (s <= 0) clearInterval(iv); }, 1000);
     } catch (err) {
-      setErrors({ phone: "Failed to send OTP. Try again." });
-      window.recaptchaVerifier = null;
-    } finally { setLoading(false); }
+      setOtpError(err.message || "Failed to send OTP. Try again.");
+    } finally { setSendingOtp(false); }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) { setErrors({ otp: "Enter the 6-digit OTP" }); return; }
-    setLoading(true); setErrors({});
+    if (!otp || otp.length < 6) { setOtpError("Enter the 6-digit OTP"); return; }
+    setVerifyingOtp(true); setOtpError("");
     try {
-      const result = await confirm.confirm(otp);
-      await authAPI.google(result.user.uid, result.user.displayName, result.user.email || `+91${phone}`, result.user.photoURL);
-      saveSession(result.user);
-      redirect(result.user);
+      await otpAPI.verify(phone, otp);
+      setOtpVerified(true);
+      // Save phone session and redirect
+      localStorage.setItem("user", JSON.stringify({ phone: `+91${phone}`, name: `User ${phone.slice(-4)}` }));
+      redirect(`+91${phone}`);
     } catch (err) {
-      setErrors({ otp: "Incorrect OTP. Please try again." });
-    } finally { setLoading(false); }
+      setOtpError(err.message || "Incorrect OTP. Please try again.");
+    } finally { setVerifyingOtp(false); }
   };
 
   return (
     <div className="h-screen flex flex-col overflow-hidden font-sans">
-      <div id="recaptcha-container" />
       <div className="flex flex-1 min-h-0">
 
         {/* LEFT */}
@@ -162,9 +143,9 @@ export default function Login() {
           <div className="relative z-10">
             <h3 className="text-xl mb-6 font-semibold">For Clients</h3>
             <ul className="space-y-4 text-gray-300">
-              <li className="flex items-center gap-3"><BadgeCheck size={20} className="text-blue-400 flex-shrink-0" /><span>Connect with verified lawyers</span></li>
-              <li className="flex items-center gap-3"><Shield size={20} className="text-emerald-400 flex-shrink-0" /><span>Secure case management</span></li>
-              <li className="flex items-center gap-3"><Zap size={20} className="text-amber-400 flex-shrink-0" /><span>Real-time consultation</span></li>
+              <li className="flex items-center gap-3"><BadgeCheck size={20} className="text-blue-400 flex-shrink-0"/><span>Connect with verified lawyers</span></li>
+              <li className="flex items-center gap-3"><Shield size={20} className="text-emerald-400 flex-shrink-0"/><span>Secure case management</span></li>
+              <li className="flex items-center gap-3"><Zap size={20} className="text-amber-400 flex-shrink-0"/><span>Real-time consultation</span></li>
             </ul>
           </div>
           <div className="relative z-10 text-sm text-gray-400">
@@ -190,7 +171,7 @@ export default function Login() {
             <h2 className="text-3xl font-semibold mb-1">Welcome</h2>
             <p className="text-gray-500 mb-5 text-sm">Sign in to your {role} account</p>
 
-            {/* Google button */}
+            {/* Google */}
             <button onClick={handleGoogle} disabled={gLoading}
               className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 hover:border-gray-400 text-gray-700 font-semibold text-sm py-3 rounded-xl transition-all shadow-sm hover:shadow-md mb-4 disabled:opacity-60">
               {gLoading
@@ -205,7 +186,7 @@ export default function Login() {
               {gLoading ? "Signing in..." : "Continue with Google"}
             </button>
 
-            {/* Login method tabs */}
+            {/* Tabs */}
             <div className="flex bg-gray-200 rounded-xl p-1 mb-4">
               <button onClick={() => { setTab("email"); setErrors({}); }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition text-xs font-semibold ${tab === "email" ? "bg-white shadow text-gray-900" : "text-gray-500"}`}>
@@ -276,47 +257,48 @@ export default function Login() {
               <>
                 <div className="mb-3">
                   <label className="block text-sm font-medium mb-1.5">Mobile Number</label>
-                  <div className={`flex items-center border-2 rounded-lg bg-white transition-all ${errors.phone ? "border-red-400 bg-red-50" : "border-gray-200 focus-within:border-gray-900"}`}>
-                    <span className="px-3 py-2.5 text-sm text-gray-500 border-r border-gray-200 font-medium">+91</span>
-                    <input type="tel" value={phone} maxLength={10} disabled={otpSent}
-                      onChange={e => { setPhone(e.target.value.replace(/\D/g,"")); setErrors(p=>({...p,phone:""})); }}
-                      placeholder="9876543210"
-                      className="w-full outline-none bg-transparent text-sm px-3 py-2.5 disabled:opacity-60"/>
+                  <div className="flex gap-2">
+                    <div className={`flex-1 flex items-center border-2 rounded-lg bg-white transition-all ${errors.phone ? "border-red-400 bg-red-50" : "border-gray-200 focus-within:border-gray-900"}`}>
+                      <span className="px-3 py-2.5 text-sm text-gray-500 border-r border-gray-200 font-medium">+91</span>
+                      <input type="tel" value={phone} maxLength={10} disabled={otpVerified}
+                        onChange={e => { setPhone(e.target.value.replace(/\D/g,"")); setErrors(p=>({...p,phone:""})); setOtpSent(false); setOtpVerified(false); setOtp(""); setOtpError(""); }}
+                        placeholder="9876543210"
+                        className="w-full outline-none bg-transparent text-sm px-3 py-2.5 disabled:opacity-60"/>
+                      {otpVerified && <CheckCircle size={16} className="text-emerald-500 mr-2 flex-shrink-0"/>}
+                    </div>
+                    {!otpVerified && (
+                      <button onClick={handleSendOtp} disabled={sendingOtp || otpTimer > 0}
+                        className="flex-shrink-0 bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:opacity-90 transition disabled:opacity-50 whitespace-nowrap">
+                        {sendingOtp ? "Sending…" : otpTimer > 0 ? `Resend ${otpTimer}s` : otpSent ? "Resend" : "Send OTP"}
+                      </button>
+                    )}
                   </div>
                   {errors.phone && <p className="flex items-center gap-1 text-xs text-red-500 mt-1"><AlertCircle size={11}/>{errors.phone}</p>}
                 </div>
 
-                {!otpSent ? (
-                  <button onClick={handleSendOtp} disabled={loading}
-                    className="w-full bg-black text-white py-2.5 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition font-semibold text-sm disabled:opacity-60">
-                    {loading
-                      ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Sending OTP...</>
-                      : <>Send OTP <ArrowRight size={16}/></>}
-                  </button>
-                ) : (
+                {otpSent && !otpVerified && (
                   <>
+                    <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-3">
+                      <CheckCircle size={14} className="text-blue-500 flex-shrink-0"/>
+                      <p className="text-xs text-blue-700 font-medium">OTP sent to +91 {phone}! Check your messages.</p>
+                    </div>
                     <div className="mb-3">
                       <label className="block text-sm font-medium mb-1.5">Enter OTP</label>
-                      <div className={`flex items-center border-2 rounded-lg px-4 py-2.5 bg-white transition-all ${errors.otp ? "border-red-400 bg-red-50" : "border-gray-200 focus-within:border-gray-900"}`}>
-                        <input type="text" value={otp} maxLength={6}
-                          onChange={e => { setOtp(e.target.value.replace(/\D/g,"")); setErrors(p=>({...p,otp:""})); }}
-                          placeholder="Enter 6-digit OTP"
-                          className="w-full outline-none bg-transparent text-sm tracking-widest font-mono"/>
+                      <div className="flex gap-2">
+                        <div className={`flex-1 flex items-center border-2 rounded-lg px-4 py-2.5 bg-white transition-all ${otpError ? "border-red-400 bg-red-50" : "border-gray-200 focus-within:border-gray-900"}`}>
+                          <input type="text" value={otp} maxLength={6}
+                            onChange={e => { setOtp(e.target.value.replace(/\D/g,"")); setOtpError(""); }}
+                            placeholder="Enter 6-digit OTP"
+                            className="w-full outline-none bg-transparent text-sm tracking-widest font-mono"/>
+                        </div>
+                        <button onClick={handleVerifyOtp} disabled={verifyingOtp}
+                          className="flex-shrink-0 bg-emerald-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-emerald-700 transition disabled:opacity-60">
+                          {verifyingOtp ? "Verifying…" : "Verify & Login"}
+                        </button>
                       </div>
-                      {errors.otp && <p className="flex items-center gap-1 text-xs text-red-500 mt-1"><AlertCircle size={11}/>{errors.otp}</p>}
-                      <p className="text-xs text-gray-400 mt-1">OTP sent to +91 {phone} {otpTimer > 0 && `· Resend in ${otpTimer}s`}</p>
+                      {otpError && <p className="flex items-center gap-1 text-xs text-red-500 mt-1"><AlertCircle size={11}/>{otpError}</p>}
+                      <p className="text-xs text-gray-400 mt-1">{otpTimer > 0 ? `Resend in ${otpTimer}s` : "You can resend OTP now"}</p>
                     </div>
-                    <button onClick={handleVerifyOtp} disabled={loading}
-                      className="w-full bg-black text-white py-2.5 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition font-semibold text-sm disabled:opacity-60">
-                      {loading
-                        ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Verifying...</>
-                        : <>Verify & Sign In <ArrowRight size={16}/></>}
-                    </button>
-                    {otpTimer === 0 && (
-                      <button onClick={() => { setOtpSent(false); setOtp(""); }} className="w-full text-center text-xs text-gray-500 hover:text-gray-900 mt-2">
-                        Resend OTP
-                      </button>
-                    )}
                   </>
                 )}
               </>
@@ -342,23 +324,21 @@ export default function Login() {
         </div>
       </div>
 
-      {FACTS.length > 0 && (
-        <footer className="w-full bg-gray-900 text-white py-3 px-4 flex-shrink-0">
-          <div className="max-w-2xl mx-auto flex flex-col items-center text-center">
-            <div className="flex items-center justify-center gap-2 mb-1.5">
-              <Scale size={12} className="text-gray-500"/>
-              <span className="text-[9px] uppercase tracking-widest text-gray-500 font-semibold">Know Your Legal Rights</span>
-              <Scale size={12} className="text-gray-500"/>
-            </div>
-            <p className="text-xs text-white font-medium transition-opacity duration-500" style={{ opacity: visible ? 1 : 0 }}>
-              "{FACTS[factIndex]}"
-            </p>
-            <div className="w-full border-t border-gray-800 mt-2 pt-2">
-              <p className="text-[9px] text-gray-600">© {new Date().getFullYear()} FindMyLawyer · All rights reserved</p>
-            </div>
+      <footer className="w-full bg-gray-900 text-white py-3 px-4 flex-shrink-0">
+        <div className="max-w-2xl mx-auto flex flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-2 mb-1.5">
+            <Scale size={12} className="text-gray-500"/>
+            <span className="text-[9px] uppercase tracking-widest text-gray-500 font-semibold">Know Your Legal Rights</span>
+            <Scale size={12} className="text-gray-500"/>
           </div>
-        </footer>
-      )}
+          <p className="text-xs text-white font-medium transition-opacity duration-500" style={{ opacity: visible ? 1 : 0 }}>
+            "{FACTS[factIndex]}"
+          </p>
+          <div className="w-full border-t border-gray-800 mt-2 pt-2">
+            <p className="text-[9px] text-gray-600">© {new Date().getFullYear()} FindMyLawyer · All rights reserved</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
