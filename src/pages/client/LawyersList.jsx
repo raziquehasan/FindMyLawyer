@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft, Star, Briefcase, Clock, Phone, MessageSquare,
   Headphones, Scale, ChevronDown, SlidersHorizontal, X,
-  MapPin, CheckCircle, Search
+  MapPin, CheckCircle
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -43,7 +43,7 @@ export default function LawyersList() {
   const [visible,    setVisible]    = useState(true);
   const [helpOpen,   setHelpOpen]   = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [search,     setSearch]     = useState("");
+
 
   // Filters
   const [activeSpec,   setActiveSpec]   = useState("All");
@@ -82,7 +82,7 @@ export default function LawyersList() {
   const filtered = ALL_LAWYERS
     .filter(l => {
       if (activeSpec !== "All" && l.specialization !== activeSpec) return false;
-      if (search) { const q = search.toLowerCase(); if (!l.name.toLowerCase().includes(q) && !l.specialization.toLowerCase().includes(q) && !l.city.toLowerCase().includes(q)) return false; }
+
       if (l.expYears < minExp)    return false;
       if (l.feeNum   > maxFee)    return false;
       if (l.rating   < minRating) return false;
@@ -150,14 +150,7 @@ export default function LawyersList() {
           </div>
         </div>
 
-        {/* Search bar */}
-        <div className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
-          <Search size={15} className="text-gray-400 flex-shrink-0"/>
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, specialization, city..."
-            className="w-full bg-transparent text-sm text-white placeholder-gray-400 outline-none"/>
-          {search && <button onClick={() => setSearch("")}><X size={14} className="text-gray-400"/></button>}
-        </div>
+
       </div>
 
       {/* FILTER PANEL */}
