@@ -1,40 +1,43 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
-const Home = () => {
-    return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-            <div className="w-full max-w-4xl mx-auto text-center py-20">
-                <h1 className="text-6xl md:text-7xl font-extrabold text-navy mb-6 tracking-tight">FindMyLawyer</h1>
+export default function Home() {
+  const navigate = useNavigate();
 
-                <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-                    Connect with usage verified legal experts or grow your practice.
-                </p>
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <h1 className="text-5xl font-bold text-[#1E2A8A] mb-4">
+        FindMyLawyer
+      </h1>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                    <Link
-                        to="/register/client"
-                        className="inline-block px-12 py-4 bg-navy text-white text-lg font-semibold rounded-2xl shadow-md transform transition duration-200 ease-out hover:scale-105 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-200"
-                    >
-                        Register as Client
-                    </Link>
+      <p className="text-gray-600 mb-10 text-lg">
+        Connect with usage verified legal experts or grow your practice.
+      </p>
 
-                    <Link
-                        to="/register/lawyer"
-                        className="inline-block px-12 py-4 bg-copper text-white text-lg font-semibold rounded-2xl shadow-md transform transition duration-200 ease-out hover:scale-105 hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-200"
-                    >
-                        Register as Lawyer
-                    </Link>
-                </div>
+      <div className="flex gap-6">
+        <button
+          className="bg-[#1E2A8A] text-white px-10 py-3 rounded-lg shadow"
+          onClick={() => navigate("/register/client")}
+        >
+          Register as Client
+        </button>
 
-                <div className="mt-12 text-center">
-                    <span className="text-gray-700 mr-2">Already have an account?</span>
-                    <Link to="/login" className="text-navy font-semibold hover:underline underline-offset-2">
-                        Login here
-                    </Link>
-                </div>
-            </div>
-        </div>
-    );
-};
+        <button
+          className="bg-[#C47A3D] text-white px-10 py-3 rounded-lg shadow"
+          onClick={() => navigate("/register/lawyer")}
+        >
+          Register as Lawyer
+        </button>
+      </div>
 
-export default Home;
+      <p className="mt-6 text-gray-600">
+        Already have an account?{" "}
+        <span
+          onClick={() => navigate("/login")}
+          className="text-[#1E2A8A] font-semibold cursor-pointer"
+        >
+          Login here
+        </span>
+      </p>
+    </div>
+  );
+}

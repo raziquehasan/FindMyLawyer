@@ -3,22 +3,32 @@ const router = express.Router();
 const multer = require("multer");
 
 const {
-  uploadCertificate,
-  updateProfile,
+  saveProfile,
+  savePhoto,
+  acceptTerms,
+  completeOnboarding,
+  getLawyerProfile,
+  getOnboardingStatus,
 } = require("../controllers/lawyerController");
 
 const { protect } = require("../middleware/authMiddleware");
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Lawyer Routes
-router.post(
-  "/upload-certificate",
-  protect,
-  upload.single("certificate"),
-  uploadCertificate
-);
+/* ================================
+   ONBOARDING
+================================ */
 
-router.put("/update-profile", protect, updateProfile);
+router.post("/profile", protect, saveProfile);
+router.post("/photo", protect, upload.single("photo"), savePhoto);
+router.post("/terms", protect, acceptTerms);
+router.post("/complete", protect, completeOnboarding);
+
+/* ================================
+   DASHBOARD
+================================ */
+
+router.get("/profile", protect, getLawyerProfile);
+router.get("/onboarding-status", protect, getOnboardingStatus);
 
 module.exports = router;

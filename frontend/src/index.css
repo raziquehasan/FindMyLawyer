@@ -23,3 +23,18 @@ body {
 a {
 	color: var(--color-blue);
 }
+
+.input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #dcdcdc;
+  margin-bottom: 14px;
+  font-size: 15px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #1e2b8f;
+  box-shadow: 0 0 0 2px rgba(30, 43, 143, 0.2);
+}

@@ -4,13 +4,8 @@ import { useAuth } from "../context/AuthContext";
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
   const { user } = useAuth();
 
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
-  if (user.role !== "admin") {
-    return <Navigate to="/" />;
-  }
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "admin") return <Navigate to="/" />;
 
   return children;
 };

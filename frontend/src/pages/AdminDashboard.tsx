@@ -3,11 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 
+interface LawyerApplication {
+  id: string;
+  enrollment_number: string;
+  certificate_url: string | null;
+  status: string;
+  admin_comment: string | null;
+  state: string;
+  city: string;
+  experience: string;
+  practice_areas: string[];
+  users: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+}
+
 const AdminDashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
-  const [pendingLawyers, setPendingLawyers] = useState<any[]>([]);
+  const [pendingLawyers, setPendingLawyers] = useState<LawyerApplication[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch pending lawyers
@@ -15,9 +32,9 @@ const AdminDashboard = () => {
     try {
       const res = await api.get("/admin/pending-lawyers");
       setPendingLawyers(res.data);
-    } catch (error) {
-      console.error(error);
-      alert("Access denied or failed to load data");
+    } catch (error: any) {
+      console.error("Error fetching pending lawyers:", error);
+      alert(error.response?.data?.message || "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -27,22 +44,41 @@ const AdminDashboard = () => {
     fetchPending();
   }, []);
 
-  // Approve / Reject lawyer
-  const handleVerify = async (
-    id: string,
-    status: "VERIFIED" | "REJECTED"
-  ) => {
+  // Approve lawyer
+  const handleApprove = async (id: string) => {
+    if (!confirm("Are you sure you want to approve this lawyer?")) return;
+
     try {
       await api.put("/admin/review-lawyer", {
         lawyerId: id,
-        status,
+        status: "VERIFIED",
       });
 
-      alert(`Lawyer ${status.toLowerCase()} successfully`);
+      alert("Lawyer approved successfully");
       fetchPending();
-    } catch (error) {
-      console.error(error);
-      alert("Action failed");
+    } catch (error: any) {
+      console.error("Approval error:", error);
+      alert(error.response?.data?.message || "Failed to approve");
+    }
+  };
+
+  // Reject lawyer
+  const handleReject = async (id: string) => {
+    const reason = prompt("Enter rejection reason:");
+    if (!reason) return;
+
+    try {
+      await api.put("/admin/review-lawyer", {
+        lawyerId: id,
+        status: "REJECTED",
+        admin_comment: reason,
+      });
+
+      alert("Lawyer rejected successfully");
+      fetchPending();
+    } catch (error: any) {
+      console.error("Rejection error:", error);
+      alert(error.response?.data?.message || "Failed to reject");
     }
   };
 
@@ -65,64 +101,78 @@ const AdminDashboard = () => {
 
       <div className="p-8">
         <h2 className="text-2xl font-semibold mb-4">
-          Pending Lawyer Verifications
+          Pending Lawyer Verifications ({pendingLawyers.length})
         </h2>
 
         {pendingLawyers.length === 0 ? (
-          <p>No pending lawyers</p>
+          <div className="bg-white p-6 rounded shadow text-center">
+            <p className="text-gray-600">No pending lawyers at this time</p>
+          </div>
         ) : (
-          <table className="w-full bg-white shadow rounded">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="p-3">Name</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Enrollment</th>
-                <th className="p-3">Certificate</th>
-                <th className="p-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingLawyers.map((lawyer) => (
-                <tr key={lawyer.id} className="border-t">
-                  <td className="p-3">{lawyer.users?.name}</td>
-                  <td className="p-3">{lawyer.users?.email}</td>
-                  <td className="p-3">{lawyer.enrollment_number}</td>
-                  <td className="p-3">
-                    {lawyer.certificate_url ? (
-                      <a
-                        href={lawyer.certificate_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        View
-                      </a>
-                    ) : (
-                      "Not uploaded"
-                    )}
-                  </td>
-                  <td className="p-3 flex gap-2">
-                    <button
-                      className="bg-green-600 text-white px-3 py-1 rounded"
-                      onClick={() =>
-                        handleVerify(lawyer.id, "VERIFIED")
-                      }
-                    >
-                      Approve
-                    </button>
-                    <button
-                      className="bg-red-600 text-white px-3 py-1 rounded"
-                      onClick={() =>
-                        handleVerify(lawyer.id, "REJECTED")
-                      }
-                    >
-                      Reject
-                    </button>
-                  </td>
+          <div className="bg-white shadow rounded overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-200">
+                <tr className="text-left">
+                  <th className="p-3">Name</th>
+                  <th className="p-3">Email</th>
+                  <th className="p-3">Location</th>
+                  <th className="p-3">Experience</th>
+                  <th className="p-3">Enrollment</th>
+                  <th className="p-3">Practice Areas</th>
+                  <th className="p-3">Certificate</th>
+                  <th className="p-3">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pendingLawyers.map((lawyer) => (
+                  <tr key={lawyer.id} className="border-t hover:bg-gray-50">
+                    <td className="p-3">{lawyer.users?.name || "N/A"}</td>
+                    <td className="p-3">{lawyer.users?.email || "N/A"}</td>
+                    <td className="p-3">
+                      {lawyer.city}, {lawyer.state}
+                    </td>
+                    <td className="p-3">{lawyer.experience}</td>
+                    <td className="p-3 font-mono text-sm">
+                      {lawyer.enrollment_number}
+                    </td>
+                    <td className="p-3 text-sm">
+                      {lawyer.practice_areas?.join(", ") || "N/A"}
+                    </td>
+                    <td className="p-3">
+                      {lawyer.certificate_url ? (
+                        
+                        <a href={lawyer.certificate_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 underline"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">Not uploaded</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-2">
+                        <button
+                          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
+                          onClick={() => handleApprove(lawyer.id)}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 text-sm"
+                          onClick={() => handleReject(lawyer.id)}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

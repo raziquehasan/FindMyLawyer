@@ -1,22 +1,19 @@
 const jwt = require("jsonwebtoken");
 
-/**
- * Protect routes – verifies JWT
- */
+// ===============================
+// AUTH MIDDLEWARE
+// ===============================
 exports.protect = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Not authorized, no token" });
+      return res.status(401).json({ message: "No token provided" });
     }
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "supersecretkey_dev_only"
-    );
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = decoded; // { id, role }
     next();
@@ -25,18 +22,21 @@ exports.protect = (req, res, next) => {
   }
 };
 
-/**
- * Role based access control
- */
+// ===============================
+// ADMIN ROLE CHECK
+// ===============================
 exports.isAdmin = (req, res, next) => {
-  if (req.user.role !== "admin") {
+  if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({ message: "Admin access only" });
   }
   next();
 };
 
+// ===============================
+// LAWYER ROLE CHECK
+// ===============================
 exports.isLawyer = (req, res, next) => {
-  if (req.user.role !== "lawyer") {
+  if (!req.user || req.user.role !== "lawyer") {
     return res.status(403).json({ message: "Lawyer access only" });
   }
   next();

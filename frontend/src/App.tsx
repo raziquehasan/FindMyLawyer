@@ -1,65 +1,55 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-
-// Layouts
-import OnboardingLayout from "./layouts/OnboardingLayout";
 
 // Pages
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ClientDashboard from "./pages/ClientDashboard";
+import RegisterLawyer from "./pages/RegisterLawyer";
+import LawyerUpload from "./pages/LawyerUpload";
 import LawyerDashboard from "./pages/LawyerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import LawyerUpload from "./pages/LawyerUpload";
+import ClientDashboard from "./pages/ClientDashboard";
 
-// Onboarding
+// Onboarding Pages
 import OnboardingProfile from "./pages/OnboardingProfile";
 import OnboardingPhoto from "./pages/OnboardingPhoto";
 import OnboardingLegal from "./pages/OnboardingLegal";
 import OnboardingAvailability from "./pages/OnboardingAvailability";
 
 // Route Guards
+import LawyerRoute from "./routes/LawyerRoute";
 import AdminRoute from "./routes/AdminRoute";
 
-function App() {
+export default function App() {
   return (
     <AuthProvider>
-      <Router>
+      <BrowserRouter>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register/:type" element={<Register />} />
+          <Route path="/register/lawyer" element={<RegisterLawyer />} />
 
-          {/* Dashboards */}
+          {/* Lawyer Routes */}
+          <Route path="/lawyer/dashboard" element={<LawyerRoute><LawyerDashboard /></LawyerRoute>} />
+          <Route path="/lawyer/upload" element={<LawyerRoute><LawyerUpload /></LawyerRoute>} />
+
+          {/* Admin Routes */}
+          <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+
+          {/* Client Routes */}
           <Route path="/dashboard" element={<ClientDashboard />} />
-          <Route path="/lawyer/dashboard" element={<LawyerDashboard />} />
 
-          {/* ✅ Admin Protected Route */}
-          <Route
-            path="/admin/dashboard"
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            }
-          />
+          {/* Onboarding Flow - Protected for Lawyers */}
+          <Route path="/onboarding/profile" element={<LawyerRoute><OnboardingProfile /></LawyerRoute>} />
+          <Route path="/onboarding/photo" element={<LawyerRoute><OnboardingPhoto /></LawyerRoute>} />
+          <Route path="/onboarding/legal" element={<LawyerRoute><OnboardingLegal /></LawyerRoute>} />
+          <Route path="/onboarding/availability" element={<LawyerRoute><OnboardingAvailability /></LawyerRoute>} />
 
-          {/* Lawyer Upload */}
-          <Route path="/lawyer/upload" element={<LawyerUpload />} />
-
-          {/* Onboarding */}
-          <Route path="/onboarding" element={<OnboardingLayout />}>
-            <Route path="profile" element={<OnboardingProfile />} />
-            <Route path="photo" element={<OnboardingPhoto />} />
-            <Route path="legal" element={<OnboardingLegal />} />
-            <Route path="availability" element={<OnboardingAvailability />} />
-          </Route>
+          {/* Catch all - redirect to home */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </Router>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
-
-export default App;
