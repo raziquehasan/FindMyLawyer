@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCQbldgoWmRyyUC-0vZItFI1RKPj3wYdx0",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "findmylawyer-15c0b.firebaseapp.com",
   projectId: "findmylawyer-15c0b",
   storageBucket: "findmylawyer-15c0b.firebasestorage.app",

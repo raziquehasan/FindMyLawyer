@@ -595,14 +595,14 @@ npm install
 2. Create a cluster (free M0 tier available)
 3. Create a database user with password
 4. Whitelist your IP (or 0.0.0.0/0 for development)
-5. Get connection string: `mongodb+srv://username:password@cluster.mongodb.net/`
+5. Get connection string: `mongodb+srv://<USERNAME>:<PASSWORD>@cluster.mongodb.net/`
 
 ### 4. Create .env File
 
 ```bash
 cat > .env << 'EOF'
 PORT=5000
-MONGO_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/legal-platform?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://<USERNAME>:<PASSWORD>@cluster0.xxxxx.mongodb.net/legal-platform?retryWrites=true&w=majority
 NODE_ENV=development
 EOF
 ```
